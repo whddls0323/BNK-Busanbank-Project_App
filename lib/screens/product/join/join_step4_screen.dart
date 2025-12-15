@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../models/product_join_request.dart';
 import '../../../services/flutter_api_service.dart';
+import '../../../services/token_storage_service.dart';
+import '../../member/login_screen.dart';
 
 /// 🔥 STEP 4: 최종 확인 및 가입
 ///
@@ -32,6 +34,59 @@ class _JoinStep4ScreenState extends State<JoinStep4Screen> {
   void initState() {
     super.initState();
     _apiService = FlutterApiService(baseUrl: widget.baseUrl);
+
+    // ✅ 로그인 체크
+    _checkLogin();
+  }
+
+  /// ✅ 로그인 체크
+  Future<void> _checkLogin() async {
+    final token = await TokenStorageService().readToken();
+
+    if (token == null) {
+      // ❌ 로그인 안 됨
+      if (!mounted) return;
+
+      final result = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.lock, color: Colors.orange, size: 28),
+              SizedBox(width: 12),
+              Text('로그인 필요'),
+            ],
+          ),
+          content: const Text('상품 가입을 완료하려면 로그인이 필요합니다.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('로그인하기'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('취소'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (result == true) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
+        Navigator.pop(context);
+      }
+    }
   }
 
   int _calculateInterest() {
@@ -148,228 +203,71 @@ class _JoinStep4ScreenState extends State<JoinStep4Screen> {
               children: [
                 // 타이틀
                 const Text(
-                  '가입 정보 최종 확인',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  '가입 정보를 확인해주세요',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-
-                const SizedBox(height: 8),
-
-                const Text(
-                  '가입을 완료하기 전, 정보와 조건을 다시 한 번 확인해 주세요.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                ),
-
                 const SizedBox(height: 24),
 
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                 // 상품 정보
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                _buildSection(
-                  '상품 정보',
-                  [
-                    _infoRow('상품명', req.productName),
-                  ],
-                ),
+                _buildSection('상품 정보', [
+                  _buildInfoRow('상품명', req.productName),
+                ]),
 
                 const SizedBox(height: 16),
 
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                 // 가입 정보
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                _buildSection(
-                  '가입 정보',
-                  [
-                    _infoRow('가입 금액', '${_formatNumber(req.principalAmount ?? 0)}원'),
-                    _infoRow('가입 기간', '${req.contractTerm}개월'),
-                    _infoRow('가입일', _formatDate(req.startDate!)),
-                    _infoRow('만기일', _formatDate(req.expectedEndDate!)),
-                  ],
-                ),
+                _buildSection('가입 정보', [
+                  _buildInfoRow('가입 금액', '${_formatNumber(req.principalAmount ?? 0)}원'),
+                  _buildInfoRow('가입 기간', '${req.contractTerm ?? 0}개월'),
+                  _buildInfoRow('적용 금리', '${(req.applyRate ?? 0.0).toStringAsFixed(2)}%'),
+                ]),
 
                 const SizedBox(height: 16),
 
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                // 금리 정보
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                _buildSection(
-                  '금리 정보',
-                  [
-                    _infoRow('기본 금리', '연 ${req.baseRate?.toStringAsFixed(2)}%'),
-                    if ((req.pointBonusRate ?? 0) > 0)
-                      _infoRow(
-                        '포인트 보너스',
-                        '+${req.pointBonusRate?.toStringAsFixed(2)}%',
-                        valueColor: Colors.blue,
-                      ),
-                    if ((req.couponBonusRate ?? 0) > 0)
-                      _infoRow(
-                        '쿠폰 보너스',
-                        '+${req.couponBonusRate?.toStringAsFixed(2)}%',
-                        valueColor: Colors.red,
-                      ),
-                    const Divider(),
-                    _infoRow(
-                      '최종 적용 금리',
-                      '연 ${req.applyRate?.toStringAsFixed(2)}%',
-                      isBold: true,
-                      valueColor: Colors.green,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                 // 예상 수익
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                Card(
-                  color: Colors.green[50],
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              '예상 이자',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              '${_formatNumber(_calculateInterest())}원',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              '만기 수령액',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              '${_formatNumber((req.principalAmount ?? 0) + _calculateInterest())}원',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                _buildSection('예상 수익', [
+                  _buildInfoRow('가입 금액', '${_formatNumber(req.principalAmount ?? 0)}원'),
+                  _buildInfoRow(
+                    '예상 이자',
+                    '${_formatNumber(_calculateInterest())}원',
+                    valueColor: Colors.blue,
                   ),
-                ),
+                  _buildInfoRow(
+                    '만기 금액',
+                    '${_formatNumber((req.principalAmount ?? 0) + _calculateInterest())}원',
+                    valueColor: Colors.red,
+                    valueBold: true,
+                  ),
+                ]),
 
                 const SizedBox(height: 24),
 
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                 // 최종 동의
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                 Container(
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
+                    color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: CheckboxListTile(
                     value: _finalAgree,
                     onChanged: (v) => setState(() => _finalAgree = v ?? false),
                     title: const Text(
-                      '위 내용을 확인하였으며, 상품 가입에 동의합니다.',
+                      '위 내용을 확인했으며, 상품 가입에 동의합니다.',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    subtitle: const Padding(
-                      padding: EdgeInsets.only(top: 8),
-                      child: Text(
-                        '• 중도해지 시 불이익이 있을 수 있습니다.\n'
-                            '• 예금자보호법에 따라 보호됩니다.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ),
                     controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 80),
               ],
             ),
           ),
 
           // 하단 버튼
           _buildBottomButton(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSection(String title, List<Widget> children) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...children,
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoRow(
-      String label,
-      String value, {
-        bool isBold = false,
-        Color? valueColor,
-      }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isBold ? 16 : 14,
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: valueColor,
-            ),
-          ),
         ],
       ),
     );
@@ -422,6 +320,62 @@ class _JoinStep4ScreenState extends State<JoinStep4Screen> {
     );
   }
 
+  Widget _buildSection(String title, List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const Divider(),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(
+      String label,
+      String value, {
+        Color? valueColor,
+        bool valueBold = false,
+      }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black54,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: valueBold ? FontWeight.bold : FontWeight.normal,
+              color: valueColor ?? Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBottomButton() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -437,11 +391,9 @@ class _JoinStep4ScreenState extends State<JoinStep4Screen> {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: _loading ? null : _submit,
+          onPressed: _loading || !_finalAgree ? null : _submit,
           style: ElevatedButton.styleFrom(
             minimumSize: const Size(double.infinity, 56),
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
           ),
           child: _loading
               ? const SizedBox(
@@ -453,11 +405,8 @@ class _JoinStep4ScreenState extends State<JoinStep4Screen> {
             ),
           )
               : const Text(
-            '가입하기',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            '가입 완료',
+            style: TextStyle(fontSize: 18),
           ),
         ),
       ),
