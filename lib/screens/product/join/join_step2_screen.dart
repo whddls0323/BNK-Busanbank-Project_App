@@ -252,7 +252,6 @@ class _JoinStep2ScreenState extends State<JoinStep2Screen> {
       context,
       MaterialPageRoute(
         builder: (_) => JoinStep3Screen(
-          baseUrl: widget.baseUrl,
           request: updated,
         ),
       ),

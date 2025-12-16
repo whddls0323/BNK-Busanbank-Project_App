@@ -1,36 +1,36 @@
 // lib/model/product_terms.dart
 
 class ProductTerms {
-  final int termsId;
+  final int termId;
   final int productNo;
-  final String termsTitle;
-  final String termsContent;
+  final String termTitle;
+  final String termContent;
   final bool isRequired;
 
   ProductTerms({
-    required this.termsId,
+    required this.termId,
     required this.productNo,
-    required this.termsTitle,
-    required this.termsContent,
+    required this.termTitle,
+    required this.termContent,
     required this.isRequired,
   });
 
   factory ProductTerms.fromJson(Map<String, dynamic> json) {
     return ProductTerms(
-      termsId: json['termsId'] ?? 0,
+      termId: json['termId'] ?? 0,
       productNo: json['productNo'] ?? 0,
-      termsTitle: json['termsTitle'] ?? '',
-      termsContent: json['termsContent'] ?? '',
+      termTitle: json['termTitle'] ?? '',
+      termContent: json['termContent'] ?? '',
       isRequired: json['isRequired'] == 1 || json['isRequired'] == true,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'termsId': termsId,
+      'termsId': termId,
       'productNo': productNo,
-      'termsTitle': termsTitle,
-      'termsContent': termsContent,
+      'termsTitle': termTitle,
+      'termsContent': termContent,
       'isRequired': isRequired,
     };
   }

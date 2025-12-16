@@ -81,19 +81,19 @@ class FlutterApiService {
 
   /// 지점 목록 조회 (인증 필요!)
   Future<List<Branch>> getBranches() async {
-    final data = await _get('/api/flutter/branches', needsAuth: true);  // ✅ true로 변경!
+    final data = await _get('/flutter/branches', needsAuth: true);  // ✅ true로 변경!
     return (data as List).map((e) => Branch.fromJson(e)).toList();
   }
 
   /// 지점별 직원 목록 조회 (인증 필요!)
   Future<List<Employee>> getEmployees(int branchId) async {
-    final data = await _get('/api/flutter/branches/$branchId/employees', needsAuth: true);  // ✅ true로 변경!
+    final data = await _get('/flutter/branches/$branchId/employees', needsAuth: true);  // ✅ true로 변경!
     return (data as List).map((e) => Employee.fromJson(e)).toList();
   }
 
   /// 약관 목록 조회
   Future<List<ProductTerms>> getTerms(int productNo) async {
-    final data = await _get('/api/flutter/products/$productNo/terms', needsAuth: false);
+    final data = await _get('/flutter/products/$productNo/terms', needsAuth: false);
     return (data as List).map((e) => ProductTerms.fromJson(e)).toList();
   }
 
@@ -103,19 +103,19 @@ class FlutterApiService {
 
   /// 쿠폰 목록 조회 (인증 필요!)
   Future<List<UserCoupon>> getCoupons(int userNo) async {
-    final data = await _get('/api/flutter/coupons/user/$userNo', needsAuth: true);
+    final data = await _get('/flutter/coupons/user/$userNo', needsAuth: true);
     return (data as List).map((e) => UserCoupon.fromJson(e)).toList();
   }
 
   /// 포인트 조회 (인증 필요!)
   Future<int> getPoints(int userNo) async {
-    final data = await _get('/api/flutter/points/user/$userNo', needsAuth: true);
-    return data['currentPoint'] ?? 0;
+    final data = await _get('/flutter/points/user/$userNo', needsAuth: true);
+    return data['totalPoints'] ?? 0;
   }
 
   /// 상품 가입 (인증 필요!)
   Future<Map<String, dynamic>> joinProduct(Map<String, dynamic> request) async {
-    return await _post('/api/flutter/join', request, needsAuth: true);
+    return await _post('/flutter/join/auth', request, needsAuth: true);
   }
 
   /// ✅ 쿠폰 목록 조회 (별칭)
@@ -128,6 +128,14 @@ class FlutterApiService {
     final points = await getPoints(userNo);
     return {'totalPoints': points};
   }
+
+  // /// ✅ 포인트 조회 (별칭, Map 반환)
+  // Future<Map<String, dynamic>> getUserPoints(int userNo) async {
+  //   final data = await _get('/flutter/points/user/$userNo', needsAuth: true);
+  //
+  //   // ✅ Backend 응답을 그대로 반환
+  //   return data;  // { "totalPoints": 2440, "availablePoints": 2440, ... }
+  // }
 
   /// ✅ 게스트 가입 (별칭)
   Future<void> joinAsGuest(Map<String, dynamic> request) async {

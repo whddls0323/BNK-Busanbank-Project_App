@@ -47,16 +47,16 @@ class _JoinStep1ScreenState extends State<JoinStep1Screen> {
       // ✅ 디버깅 로그 추가!
       print('📋 약관 조회 완료: ${terms.length}개');
       for (var term in terms) {
-        print('   - termsId: ${term.termsId}');
-        print('   - termsTitle: ${term.termsTitle}');
-        print('   - termsContent 길이: ${term.termsContent.length}');
+        print('   - termsId: ${term.termId}');
+        print('   - termsTitle: ${term.termTitle}');
+        print('   - termsContent 길이: ${term.termContent.length}');
         print('   - isRequired: ${term.isRequired}');
       }
 
       setState(() {
         _terms = terms;
         for (final term in terms) {
-          _agreed[term.termsId] = false;
+          _agreed[term.termId] = false;
         }
         _loading = false;
       });
@@ -73,18 +73,18 @@ class _JoinStep1ScreenState extends State<JoinStep1Screen> {
 
   bool get _allAgreed {
     if (_terms.isEmpty) return false;
-    return _terms.every((t) => _agreed[t.termsId] == true);
+    return _terms.every((t) => _agreed[t.termId] == true);
   }
 
   bool _areRequiredTermsAgreed() {
     final required = _terms.where((t) => t.isRequired);
-    return required.every((t) => _agreed[t.termsId] == true);
+    return required.every((t) => _agreed[t.termId] == true);
   }
 
   void _toggleAll(bool? value) {
     setState(() {
       for (final term in _terms) {
-        _agreed[term.termsId] = value ?? false;
+        _agreed[term.termId] = value ?? false;
       }
     });
   }
@@ -138,7 +138,7 @@ class _JoinStep1ScreenState extends State<JoinStep1Screen> {
                     children: [
                       Expanded(
                         child: Text(
-                          term.termsTitle,
+                          term.termTitle,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -156,8 +156,8 @@ class _JoinStep1ScreenState extends State<JoinStep1Screen> {
                     child: SingleChildScrollView(
                       controller: controller,
                       child: Text(
-                        term.termsContent.isNotEmpty
-                            ? term.termsContent
+                        term.termContent.isNotEmpty
+                            ? term.termContent
                             : '약관 내용이 없습니다.',  // ✅ null 체크!
                         style: const TextStyle(fontSize: 14, height: 1.5),
                       ),
@@ -234,10 +234,10 @@ class _JoinStep1ScreenState extends State<JoinStep1Screen> {
                   return Column(
                     children: [
                       CheckboxListTile(
-                        value: _agreed[term.termsId],
+                        value: _agreed[term.termId],
                         onChanged: (v) {
                           setState(() {
-                            _agreed[term.termsId] = v ?? false;
+                            _agreed[term.termId] = v ?? false;
                           });
                         },
                         title: Row(
@@ -268,7 +268,7 @@ class _JoinStep1ScreenState extends State<JoinStep1Screen> {
                             // ✅ 약관 제목 표시 (핵심 수정!)
                             Expanded(
                               child: Text(
-                                term.termsTitle,  // ← 이게 중요!
+                                term.termTitle,  // ← 이게 중요!
                                 style: const TextStyle(fontSize: 14),
                                 overflow: TextOverflow.ellipsis,
                               ),

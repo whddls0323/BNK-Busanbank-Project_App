@@ -2,17 +2,16 @@
   날짜 : 2025/12/15
   내용 : 로그인 페이지 추가
   작성자 : 오서정
-*/
-import 'dart:developer';
 
+  날짜 : 2025/12/16
+  내용 : AuthProvider 병합  - 진원, 수진
+*/
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 import 'package:tkbank/providers/auth_provider.dart';
 import 'package:tkbank/screens/member/terms_screen.dart';
-import 'package:tkbank/services/member_service.dart';
-import 'package:tkbank/services/token_storage_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,8 +23,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _idController = TextEditingController();
   final _pwController = TextEditingController();
-
-  final service = MemberService();
 
   static const Color purple900 = Color(0xFF662382);
   static const Color purple500 = Color(0xFFBD9FCD);
@@ -42,56 +39,15 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      final jsonData = await service.login(userId, userPw);
-      print('[DEBUG] ============= 로그인 성공 =============');
-      print('[DEBUG] 응답 데이터: $jsonData');
+      // AuthProvider에서 직접 API 호출
+      await context.read<AuthProvider>().login(userId, userPw);
 
-      final accessToken = jsonData['accessToken'];
-      // 2025/12/16 - 로그인 응답에서 사용자 정보 추출 - 작성자: 진원
-      final userNo = jsonData['userNo']?.toString() ?? '';
-      final userIdFromApi = jsonData['userId']?.toString() ?? userId;
-      final userName = jsonData['userName']?.toString() ?? '';
-      final role = jsonData['role']?.toString() ?? 'USER';
+      print('[DEBUG] AuthProvider.login() 호출 완료!');
+      print('[DEBUG] isLoggedIn: ${context.read<AuthProvider>().isLoggedIn}');
+      print('[DEBUG] userNo: ${context.read<AuthProvider>().userNo}');
 
-      print('[DEBUG] accessToken: ${accessToken != null ? "있음" : "없음"}');
-      print('[DEBUG] userNo: $userNo');
-      print('[DEBUG] userName: $userName');
-
-      log('accessToken : $accessToken');
-
-      if (accessToken != null && userNo.isNotEmpty) {
-        print('[DEBUG] 토큰 길이: ${accessToken.length}');
-        print('[DEBUG] 토큰 시작 20자: ${accessToken.substring(0, 20)}...');
-
-        if (mounted) {
-          await context.read<AuthProvider>().login(
-            accessToken,
-            userNo: userNo,
-            userId: userIdFromApi,
-            userName: userName,
-            role: role,
-          );
-          print('[DEBUG] AuthProvider.login() 호출 완료!');
-
-          // ✅ 저장 확인
-          final savedToken = await TokenStorageService().readToken();
-          print('[DEBUG] 저장 확인: ${savedToken != null ? "성공" : "실패"}');
-          if (savedToken != null) {
-            print('[DEBUG] 저장된 토큰 시작 20자: ${savedToken.substring(0, 20)}...');
-          }
-
-          print('[DEBUG] isLoggedIn: ${context.read<AuthProvider>().isLoggedIn}');
-          print('[DEBUG] userNo: ${context.read<AuthProvider>().userNo}');
-
-          Navigator.of(context).pop();
-        }
-      } else {
-        print('[ERROR] 로그인 응답에 필수 정보가 없습니다.');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('로그인 정보가 올바르지 않습니다')),
-          );
-        }
+      if (mounted) {
+        Navigator.of(context).pop();
       }
     } catch (err) {
       print('[ERROR] 로그인 실패: $err');
@@ -255,5 +211,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _idController.dispose();
+    _pwController.dispose();
+    super.dispose();
   }
 }
