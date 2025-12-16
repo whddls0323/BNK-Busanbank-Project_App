@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import '../../models/product.dart';
 import '../../services/product_service.dart';
@@ -25,6 +26,24 @@ class _ProductMainScreenState extends State<ProductMainScreen> {
     super.initState();
     _service = ProductService(widget.baseUrl);
     _futureProducts = _service.fetchProducts();
+
+    requestPermission();  //firebase - 작성자: 윤종인
+  }
+
+  // 🔹 알림 권한 요청
+  Future<void> requestPermission() async {  //firebase - 작성자: 윤종인
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    print('알림 권한 상태: ${settings.authorizationStatus}');
+
+    final token = await messaging.getToken();
+    print('FCM Token: $token');
   }
 
   List<Product> _filterByCategory(List<Product> all) {
