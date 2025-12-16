@@ -79,15 +79,15 @@ class FlutterApiService {
   // 공개 API (로그인 불필요)
   // ========================================
 
-  /// 지점 목록 조회
+  /// 지점 목록 조회 (인증 필요!)
   Future<List<Branch>> getBranches() async {
-    final data = await _get('/api/flutter/branches', needsAuth: false);
+    final data = await _get('/api/flutter/branches', needsAuth: true);  // ✅ true로 변경!
     return (data as List).map((e) => Branch.fromJson(e)).toList();
   }
 
-  /// 지점별 직원 목록 조회
+  /// 지점별 직원 목록 조회 (인증 필요!)
   Future<List<Employee>> getEmployees(int branchId) async {
-    final data = await _get('/api/flutter/branches/$branchId/employees', needsAuth: false);
+    final data = await _get('/api/flutter/branches/$branchId/employees', needsAuth: true);  // ✅ true로 변경!
     return (data as List).map((e) => Employee.fromJson(e)).toList();
   }
 

@@ -43,18 +43,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final jsonData = await service.login(userId, userPw);
+      print('[DEBUG] ============= 로그인 성공 =============');
+      print('[DEBUG] 응답 데이터: $jsonData');
+
       final accessToken = jsonData['accessToken'];
+      print('[DEBUG] accessToken: ${accessToken != null ? "있음" : "없음"}');
 
       log('accessToken : $accessToken');
 
-      if (accessToken != null && mounted) {
-        context.read<AuthProvider>().login(accessToken);
-        Navigator.of(context).pop();
+      if (accessToken != null) {
+        print('[DEBUG] 토큰 길이: ${accessToken.length}');
+        print('[DEBUG] 토큰 시작 20자: ${accessToken.substring(0, 20)}...');
+
+        if (mounted) {
+          context.read<AuthProvider>().login(accessToken);
+          print('[DEBUG] AuthProvider.login() 호출 완료!');
+
+          // ✅ 저장 확인
+          final savedToken = await TokenStorageService().readToken();
+          print('[DEBUG] 저장 확인: ${savedToken != null ? "성공" : "실패"}');
+          if (savedToken != null) {
+            print('[DEBUG] 저장된 토큰 시작 20자: ${savedToken.substring(0, 20)}...');
+          }
+
+          print('[DEBUG] isLoggedIn: ${context.read<AuthProvider>().isLoggedIn}');
+
+          Navigator.of(context).pop();
+        }
       }
     } catch (err) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('로그인 실패: $err')),
-      );
+      print('[ERROR] 로그인 실패: $err');
     }
   }
 
