@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "918058159896",
+    "project_id": "bnk-flutter-project",
+    "storage_bucket": "bnk-flutter-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:918058159896:android:82796467d79f1ec32ed86d",
+        "android_client_info": {
+          "package_name": "com.example.bnk_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAr_CN8M4IOgoeu9TB-CX7jLX6WQjzKR7g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:918058159896:android:afef0017221e6d7f2ed86d",
+        "android_client_info": {
+          "package_name": "com.example.tkbank"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAr_CN8M4IOgoeu9TB-CX7jLX6WQjzKR7g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
