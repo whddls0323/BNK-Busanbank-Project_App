@@ -44,12 +44,11 @@ class _JoinStep3ScreenState extends State<JoinStep3Screen> {
   }
 
   Future<void> _loadUserData() async {
-    // ✅ AuthProvider에서 실제 로그인한 userNo 가져오기
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userNo = authProvider.userNo;
 
     if (userNo == null) {
-      print('[ERROR] userNo가 null입니다! 로그인이 필요합니다.');
+      print('[ERROR] userNo가 null입니다!');
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -63,29 +62,20 @@ class _JoinStep3ScreenState extends State<JoinStep3Screen> {
     print('[DEBUG] 현재 로그인 userNo: $userNo');
 
     try {
-      // 포인트 조회
+      // ✅ 1. 포인트 조회
       print('[DEBUG] 포인트 조회 시작...');
-      final pointsData = await _apiService.getUserPoints(userNo);  // ✅ 추가!
+      final pointsData = await _apiService.getUserPoints(userNo);
       print('[DEBUG] 포인트 응답: $pointsData');
 
-      // 쿠폰 조회 (9번 카테고리만!)
+      // ✅ 2. 쿠폰 조회
       print('[DEBUG] 쿠폰 조회 시작...');
-      print('[DEBUG] productNo: ${widget.request.productNo}');
-
-      final allCoupons = await _apiService.getUserCoupons(userNo);
-      print('[DEBUG] 전체 쿠폰: ${allCoupons.length}개');
-
-      // ✅ 9번 카테고리 필터링!
-      final filteredCoupons = allCoupons.where((coupon) {
-        return coupon.categoryId == 9;
-      }).toList();
-
-      print('[DEBUG] 9번 카테고리 쿠폰: ${filteredCoupons.length}개');
+      final coupons = await _apiService.getUserCoupons(userNo);
+      print('[DEBUG] 쿠폰 ${coupons.length}개 조회 완료');
 
       if (mounted) {
         setState(() {
-          _totalPoints = pointsData['totalPoints'] ?? 0;  // ✅ 정상 작동!
-          _coupons = filteredCoupons;
+          _totalPoints = pointsData['totalPoints'] ?? 0;
+          _coupons = coupons;  // SQL에서 9번 필터링했음
           _isLoading = false;
         });
       }
@@ -93,6 +83,7 @@ class _JoinStep3ScreenState extends State<JoinStep3Screen> {
       print('[DEBUG] ✅ STEP 3 데이터 로딩 완료!');
       print('[DEBUG] 포인트: $_totalPoints');
       print('[DEBUG] 쿠폰: ${_coupons.length}개');
+
     } catch (e) {
       print('[ERROR] 데이터 조회 실패: $e');
       if (mounted) {
