@@ -95,10 +95,10 @@ class ChatController {
   }
 
   /// ✅ 종료: 세션/연결/캐시 정리(히스토리는 별도 API로)
-  void disconnectAndReset() {
+  void disconnectAndReset({bool clearCache = false}) {
     ws.disconnect();
     sessionId = null;
-    cachedMessages.clear();
+    if (clearCache) cachedMessages.clear();
   }
 
   void dispose() {

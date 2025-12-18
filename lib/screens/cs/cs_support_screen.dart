@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tkbank/screens/cs/chat/chat_history_screen.dart';
+import 'package:tkbank/screens/cs/counsel_history_hub_screen.dart';
+import 'package:tkbank/screens/cs/email/email_counsel_form_screen.dart';
+import 'package:tkbank/screens/cs/email/email_counsel_list_screen.dart';
 
 import 'package:tkbank/screens/cs/faq_screen.dart';
+import 'package:tkbank/screens/walk/step_counter_page.dart';
 
 import '../../../controller/chat_controller.dart';
 import '../../../services/cs/chat/chat_api_service.dart';
@@ -25,9 +30,6 @@ class _CustomerSupportScreenState extends State<CustomerSupportScreen> {
 
   @override
   void dispose() {
-    // 이어하기를 "앱 전체"로 유지하려면 여기서 dispose 하지 말고
-    // 로그아웃 시점에만 정리하는 구조로 바꾸세요.
-    _chatController?.dispose();
     super.dispose();
   }
 
@@ -69,15 +71,33 @@ class _CustomerSupportScreenState extends State<CustomerSupportScreen> {
     );
   }
 
-  void _openOneToOne(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('1:1 문의 화면은 추후 연결 예정입니다.')),
+  void _openOneToOne(BuildContext context) async {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인이 필요합니다.')),
+      );
+      return;
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const EmailCounselFormScreen()),
     );
   }
 
-  void _openChatHistory(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('지난 상담내역은 추후 연결 예정입니다.')),
+  void _openChatHistory(BuildContext context) async {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인이 필요합니다.')),
+      );
+      return;
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CounselHistoryHubScreen()),
     );
   }
 
@@ -227,6 +247,30 @@ class _CustomerSupportScreenState extends State<CustomerSupportScreen> {
                   subtitle: const Text('고객센터로 바로 전화 연결됩니다.'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _callCenter(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 만보기
+          Text('만보기', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.directions_walk),
+                  title: const Text('만보기'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => StepCounterPage()),
+                    );
+                  },
                 ),
               ],
             ),

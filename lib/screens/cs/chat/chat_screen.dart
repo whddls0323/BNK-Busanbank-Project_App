@@ -261,16 +261,21 @@ class _ChatScreenState extends State<ChatScreen> {
     if (action == _LeaveAction.stay) return;
 
     if (action == _LeaveAction.end) {
-      // ✅ 상담 종료: END 전송 + 세션/연결 정리 + 캐시 정리
       _chatController.requestEndChat();
-      _chatController.disconnectAndReset();
-      _messages.clear(); // ✅ 종료되면 화면 캐시는 비움 (히스토리는 별도 화면/API)
+
+      // ✅ 세션만 종료 처리하고, 화면/캐시는 남겨서 마지막 대화 확인 가능
+      _chatController.disconnectAndReset(clearCache: false);
+
+      if (!mounted) return;
       setState(() => _isEnded = true);
-    } else {
-      // ✅ 나가기(상담 유지): END 전송 X / sessionId 유지 / 소켓만 끊기
-      _chatController.detach();
-      // 메시지 캐시는 유지(복원 목적)
+
+      // ✅ 종료 후 화면은 팝(기존처럼)
+      Navigator.of(context).pop();
+      return;
     }
+
+    // ✅ 나가기(상담 유지): 소켓만 끊고 sessionId/캐시는 유지
+    _chatController.detach();
 
     if (!mounted) return;
     Navigator.of(context).pop();
@@ -305,12 +310,12 @@ class _ChatScreenState extends State<ChatScreen> {
     if (ok != true) return;
 
     _chatController.requestEndChat();
-    _chatController.disconnectAndReset();
-    _messages.clear(); // ✅ 종료 시 캐시 비움
+    _chatController.disconnectAndReset(clearCache: false);
 
     if (!mounted) return;
     Navigator.of(context).pop();
   }
+
 
   // --------------------------
   // Scroll util
