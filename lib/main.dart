@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:tkbank/providers/auth_provider.dart';
 import 'package:tkbank/providers/register_provider.dart';
+import 'package:tkbank/screens/camera/vision_test_screen.dart';
 import 'package:tkbank/screens/cs/cs_support_screen.dart';
 import 'package:tkbank/services/FcmService.dart';
 import 'package:tkbank/screens/member/login_screen.dart';
@@ -261,6 +262,32 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+
+              SizedBox( // 25/12/18 임시 이미지 테스트 작성자: 윤종인 @@@@@@@@@@@@@@@@@@@@@@
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const VisionTestScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text(
+                    'OCR 테스트 (임시)',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
 
               // ✅ 버튼 5: 로그인 / 로그아웃
               if (!isLoggedIn) ...[
