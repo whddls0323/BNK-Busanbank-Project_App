@@ -11,6 +11,7 @@ import 'screens/product/product_main_screen.dart';
 import 'screens/member/coupon_screen.dart';
 import 'screens/member/point_history_screen.dart';
 import 'screens/game/game_menu_screen.dart';
+import 'screens/my_page/my_page_screen.dart'; // 2025/12/18 - 마이페이지 추가 - 작성자: 진원
 
 // 2025/12/17 - Locale 초기화 추가 - 작성자: 진원
 Future<void> main() async {
@@ -249,7 +250,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.games),
+                  icon: const Icon(Icons.support_agent),
                   label: const Text(
                     '고객센터',
                     style: TextStyle(fontSize: 18),
@@ -261,6 +262,33 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+
+              // ✅ 버튼 : 마이페이지 (2025/12/18 - 작성자: 진원)
+              if (isLoggedIn)
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MyPageScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.person),
+                    label: const Text(
+                      '마이페이지',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2196F3),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              if (isLoggedIn) const SizedBox(height: 16),
 
               // ✅ 버튼 5: 로그인 / 로그아웃
               if (!isLoggedIn) ...[
