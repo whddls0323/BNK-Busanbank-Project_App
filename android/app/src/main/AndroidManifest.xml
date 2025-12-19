@@ -3,6 +3,16 @@
     <!-- Android 알림 권한 (윤종인) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- 2025/12/17 - 영업점 체크인 위치 권한 - 작성자: 진원 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <!-- 2025/12/17 - 만보기 권한 - 작성자: 우지희  -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+    <uses-permission android:name="android.permission.BODY_SENSORS"/>
+
     <application
         android:label="tkbank"
         android:name="${applicationName}"
@@ -13,12 +23,12 @@
         <!--  기본 Notification Channel (윤종인) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="high_importance_channel"/>
+            android:value="high_importance_channel_v2"/>
 
         <!-- 🔥 FCM 기본 알림 아이콘 (윤종인) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/tkbank_logo"/>
+            android:resource="@drawable/ic_notification"/>
 
         <activity
             android:name=".MainActivity"

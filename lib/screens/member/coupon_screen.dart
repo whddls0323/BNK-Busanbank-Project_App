@@ -1,4 +1,5 @@
 // 2025/12/16 - 쿠폰 조회 및 등록 화면 - 작성자: 진원
+// 2025/12/17 - 쿠폰 기능 재활성화 - 작성자: 진원
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/user_coupon.dart';
@@ -271,7 +272,7 @@ class _CouponScreenState extends State<CouponScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                '금리 +${(coupon.bonusRate * 100).toStringAsFixed(1)}%',
+                '금리 +${(coupon.bonusRate * 1).toStringAsFixed(1)}%',
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:tkbank/providers/auth_provider.dart';
 import 'package:tkbank/providers/register_provider.dart';
+import 'package:tkbank/screens/camera/vision_test_screen.dart';
+import 'package:tkbank/screens/cs/cs_support_screen.dart';
 import 'package:tkbank/services/FcmService.dart';
 import 'package:tkbank/screens/member/login_screen.dart';
 import 'package:tkbank/services/token_storage_service.dart';
@@ -13,11 +16,16 @@ import 'package:tkbank/screens/product/join/join_step4_screen.dart';
 import 'package:tkbank/screens/product/join/join_step3_screen.dart';
 import 'package:tkbank/screens/product/join/join_step2_screen.dart';
 import 'package:tkbank/models/product_join_request.dart';
+import 'screens/my_page/my_page_screen.dart'; // 2025/12/18 - 마이페이지 추가 - 작성자: 진원
 
-
+// 2025/12/17 - Locale 초기화 추가 - 작성자: 진원
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await FcmService.init();
+  WidgetsFlutterBinding.ensureInitialized(); //Flutter 플러그인과 플랫폼 기능을 쓰기 위한 사전 준비 작성자 : 윤종인
+
+  // 날짜 포맷팅 Locale 초기화
+  await initializeDateFormatting('ko_KR', null);
+
+  await FcmService.init(); //firebase를 미리 준비 작성자 : 윤종인
 
   runApp(
     MultiProvider(
@@ -224,8 +232,86 @@ class HomeScreen extends StatelessWidget {
                     foregroundColor: Colors.white,
                   ),
                 ),
+              ),const SizedBox(height: 16),
+
+              // ✅ 버튼 : 고객센터
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CustomerSupportScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.support_agent),
+                  label: const Text(
+                    '고객센터',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF9C27B0),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
+
+              // ✅ 버튼 : 마이페이지 (2025/12/18 - 작성자: 진원)
+              if (isLoggedIn)
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MyPageScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.person),
+                    label: const Text(
+                      '마이페이지',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2196F3),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              
+              if (isLoggedIn) const SizedBox(height: 16),
+              SizedBox( // 25/12/18 임시 이미지 테스트 작성자: 윤종인 @@@@@@@@@@@@@@@@@@@@@@
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const VisionTestScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text(
+                    'OCR 테스트 (임시)',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
 
               // ✅ 버튼 5: 로그인 / 로그아웃
               if (!isLoggedIn) ...[
