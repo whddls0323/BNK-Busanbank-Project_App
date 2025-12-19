@@ -33,6 +33,24 @@ class _VisionTestScreenState extends State<VisionTestScreen> {
 
             const SizedBox(height: 16),
 
+            ElevatedButton.icon(
+              icon: const Icon(Icons.camera_alt),
+              label: const Text('카메라 촬영'),
+              onPressed: () async {
+                final picker = ImagePicker();
+                final picked = await picker.pickImage(source: ImageSource.camera);
+
+                if(picked != null) {
+                  setState(() {
+                    image = picked;
+                    result = "";
+                  });
+                }
+              },
+            ),
+
+            const SizedBox(height: 16),
+
             ElevatedButton(
               onPressed: () async {
                 final picker = ImagePicker();
@@ -100,7 +118,10 @@ class _VisionTestScreenState extends State<VisionTestScreen> {
           "requests": [
             {
               "image": {"content": base64Image},
-              "features": [{"type": "LABEL_DETECTION"}]
+              "features": [
+                {"type": "LABEL_DETECTION"},
+                {"type": "WEB_DETECTION"}
+              ]
             }
           ]
         }),

@@ -1,7 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Android 알림 권한 (윤종인) -->
+    <!-- 알림 권한 - 작성자: 윤종인 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- 2025/12/19 - 카메라 권한 - 작성자: 윤종인 -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+
 
     <uses-permission android:name="android.permission.INTERNET"/>
 
