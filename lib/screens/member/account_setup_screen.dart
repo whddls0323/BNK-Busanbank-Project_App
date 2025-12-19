@@ -1,9 +1,16 @@
+/*
+  날짜 : 2025/12/17
+  내용 : 회원가입 계정 설정 구현
+  작성자 : 오서정
+*/
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tkbank/providers/register_provider.dart';
+import 'package:tkbank/screens/member/register_welcome_screen.dart';
 import 'package:tkbank/services/member_service.dart';
 import 'package:tkbank/utils/validators.dart';
 import 'package:tkbank/widgets/register_step_indicator.dart';
+
 
 class AccountSetupScreen extends StatefulWidget {
   const AccountSetupScreen({super.key});
@@ -50,6 +57,9 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
   // ======================
   late AnimationController _shakeCtrl;
   late Animation<double> _shakeAnim;
+
+  bool showPw = false;
+  bool showPwConfirm = false;
 
   @override
   void initState() {
@@ -187,19 +197,28 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
                 userId: idCtrl.text.trim(),
                 userPw: pwCtrl.text.trim(),
                 accountPassword: accountPwCtrl.text.trim(),
+                email: provider.email,
               );
 
               await MemberService().register(provider.toJson());
               provider.clear();
 
-              Navigator.pushReplacementNamed(context, '/register/finish');
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const RegisterWelcomeScreen(),
+                ),
+              );
             },
             child: const Text('회원가입 완료'),
           ),
+
         ),
+
       ),
 
       body: SafeArea(
+        child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: AnimatedBuilder(
@@ -239,7 +258,11 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
                   label: '비밀번호',
                   ctrl: pwCtrl,
                   focus: pwFocus,
-                  obscure: true,
+                  obscure: !showPw,
+                  showToggle: true,
+                  onToggle: () {
+                    setState(() => showPw = !showPw);
+                  },
                   error: pwError,
                   required: true,
                 ),
@@ -250,18 +273,24 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
                   focus: pwConfirmFocus,
                   obscure: true,
                   error: pwConfirmError,
-                  required: true,
                 ),
 
-                _field(
-                  label: '계좌 비밀번호 (숫자 4자리)',
-                  ctrl: accountPwCtrl,
-                  focus: accountPwFocus,
-                  obscure: true,
-                  maxLength: 4,
-                  keyboard: TextInputType.number,
-                  error: accountPwError,
-                  required: true,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _accountPwLabel(context),
+
+                    _field(
+                      label: '', // 라벨은 이미 위에서 처리
+                      ctrl: accountPwCtrl,
+                      focus: accountPwFocus,
+                      obscure: true,
+                      maxLength: 4,
+                      keyboard: TextInputType.number,
+                      error: accountPwError,
+                      required: false,
+                    ),
+                  ],
                 ),
 
                 _field(
@@ -272,13 +301,25 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
                   maxLength: 4,
                   keyboard: TextInputType.number,
                   error: accountPwConfirmError,
-                  required: true,
                 ),
+
+                const SizedBox(height: 40),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => RegisterWelcomeScreen()),
+                    );
+                  },
+                  child: const Text('다음 (개발용)'),
+                ),
+
               ],
             ),
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -310,6 +351,8 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
     required FocusNode focus,
     String? error,
     bool obscure = false,
+    bool showToggle = false,
+    VoidCallback? onToggle,
     int? maxLength,
     TextInputType keyboard = TextInputType.text,
     bool required = false,
@@ -337,24 +380,40 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
               obscureText: obscure,
               keyboardType: keyboard,
               maxLength: maxLength,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 counterText: '',
+                suffixIcon: showToggle
+                    ? IconButton(
+                  icon: Icon(
+                    obscure ? Icons.visibility_off : Icons.visibility,
+                    size: 20,
+                  ),
+                  onPressed: onToggle,
+                )
+                    : null,
               ),
             ),
           ),
 
           /// 🔴 에러 메시지
-          if (error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                error,
-                style: const TextStyle(color: Colors.red, fontSize: 12),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              error ??
+                  (label == '아이디'
+                      ? '영문 + 숫자 조합, 5~20자 이내'
+                      : label == '비밀번호'
+                      ? '영문 + 숫자 + 특수문자 포함 8자 이상'
+                      : ''),
+              style: TextStyle(
+                fontSize: 12,
+                color: error != null ? Colors.red : Colors.grey.shade600,
               ),
             ),
+          ),
 
           /// 🟢 아이디 중복 통과 메시지
           if (label == '아이디' && idChecked && !idDuplicated && error == null)
@@ -369,4 +428,78 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
       ),
     );
   }
+
+  Widget _accountPwLabel(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          const Text(
+            '계좌 비밀번호 (숫자 4자리)',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.circle, size: 6, color: Colors.red),
+
+          const SizedBox(width: 6),
+
+          /// ❓ 아이콘
+          GestureDetector(
+            onTap: () => _showAccountPwGuide(context),
+            child: Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade400),
+              ),
+              child: const Center(
+                child: Text(
+                  '?',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAccountPwGuide(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true, // 바깥 눌러도 닫힘
+      builder: (_) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            '계좌 비밀번호',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            '본 회원 정보로 가입하는 모든 금융상품의\n'
+                '계좌 비밀번호로 자동 설정됩니다.\n\n'
+                '숫자 4자리를 입력해주세요.',
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('확인'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 }

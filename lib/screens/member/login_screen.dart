@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 import 'package:tkbank/providers/auth_provider.dart';
+import 'package:tkbank/screens/member/find_id_screen.dart';
+import 'package:tkbank/screens/member/find_pw_screen.dart';
 import 'package:tkbank/screens/member/terms_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -169,7 +171,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     TextButton(
                       onPressed: () {
-                        // TODO: 아이디 찾기
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const FindIdScreen()),
+                        );
                       },
                       child: const Text(
                         '아이디 찾기',
@@ -179,6 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     TextButton(
                       onPressed: () {
+                        // 2025/12/18 - 아이디 찾기 화면 연결 - 작성자: 오서정
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => const TermsScreen(),
@@ -196,7 +201,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     TextButton(
                       onPressed: () {
-                        // TODO: 비밀번호 찾기
+                        // 2025/12/18 - 비밀번호 찾기 화면 연결 - 작성자: 오서정
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => FindPwScreen(),
+                          ),
+                        );
                       },
                       child: const Text(
                         '비밀번호 찾기',

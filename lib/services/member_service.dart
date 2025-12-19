@@ -147,6 +147,62 @@ class MemberService{
     return data['count'] > 0;
   }
 
+  Future<Map<String, dynamic>> findUserIdByHp({required String userName, required String hp,}) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/api/member/find/id/hp'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userName': userName,
+        'hp': hp,
+      }),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception(utf8.decode(res.bodyBytes));
+    }
+
+    return jsonDecode(res.body);
+  }
+
+  /// 🔐 비밀번호 찾기 - 사용자 확인
+  Future<void> verifyUserForPw({
+    required String userName,
+    required String userId,
+    required String hp,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/api/member/find/pw/hp'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userName': userName,
+        'userId': userId,
+        'hp': hp,
+      }),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception(jsonDecode(res.body)['message']);
+    }
+  }
+
+  /// 🔐 비밀번호 재설정
+  Future<void> resetPassword({
+    required String userId,
+    required String newPw,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/api/member/find/pw/reset'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': userId,
+        'userPw': newPw,
+      }),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('비밀번호 변경 실패');
+    }
+  }
   // 2025/12/18 - 사용자 프로필 조회 - 작성자: 진원
   Future<UserProfile> getUserProfile(int userNo) async {
     final headers = await _getHeaders(needsAuth: true);

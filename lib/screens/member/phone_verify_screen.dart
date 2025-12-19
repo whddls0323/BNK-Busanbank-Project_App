@@ -1,3 +1,8 @@
+/*
+  날짜 : 2025/12/17
+  내용 : 회원가입 개인정보 구현
+  작성자 : 오서정
+*/
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +12,10 @@ import 'package:tkbank/services/member_service.dart';
 import 'package:tkbank/utils/formatters/phone_number_formatter.dart';
 import 'package:tkbank/utils/validators.dart';
 import 'package:tkbank/widgets/register_step_indicator.dart';
+
+
+const DEV_PHONE = '010-1111-1111';
+
 
 class PhoneVerifyScreen extends StatefulWidget {
   const PhoneVerifyScreen({super.key});
@@ -54,6 +63,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen>
   // ======================
   late AnimationController _shakeCtrl;
   late Animation<double> _shakeAnim;
+
 
   @override
   void initState() {
@@ -167,6 +177,16 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen>
   }
 
   Future<bool> _validatePhone() async {
+    // ✅ 개발용 번호는 무조건 통과 + 인증 처리
+    if (phoneCtrl.text.trim() == DEV_PHONE) {
+      setState(() {
+        phoneError = null;
+        isPhoneVerified = true;   // 🔥 핵심
+        codeRequested = false;
+        codeError = false;
+      });
+      return true;
+    }
     if (!Validators.isValidHp(phoneCtrl.text)) {
       setState(() => phoneError = '휴대폰 번호를 확인해주세요.');
       _shakeCtrl.forward(from: 0);
@@ -216,11 +236,17 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen>
 
               final provider = context.read<RegisterProvider>();
 
+              provider.setPhoneInfo(
+                hp: phoneCtrl.text.trim(),
+                userName: nameCtrl.text.trim(),
+              );
+
               provider.setUserInfo(
                 rrn: rrnFrontCtrl.text + rrnBackCtrl.text,
                 addr1: '',
                 addr2: '',
               );
+
               provider.email = emailCtrl.text.trim();
 
               Navigator.push(
@@ -269,7 +295,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen>
                 _input(nameCtrl, focus: nameFocus, isError: nameError != null, ),
                 _errorText(nameError),
 
-                _label('주민등록번호'),
+                _label('주민등록번호', required: true),
                 Row(
                   children: [
                     Expanded(
@@ -304,7 +330,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen>
                 ),
                 _errorText(juminError),
 
-                _label('이메일'),
+                _label('이메일', required: true),
                 _input(emailCtrl, focus: emailFocus, isError: emailError != null,),
                 _errorText(emailError),
                 if (emailChecked && !emailDuplicated && emailError == null)
@@ -343,6 +369,19 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen>
                             : () async {
                           final ok = await _validatePhone();
                           if (!ok) return;
+
+                          // ✅ 개발용 우회 인증
+                          if (phoneCtrl.text.trim() == DEV_PHONE) {
+                            setState(() {
+                              isPhoneVerified = true;
+                              codeRequested = false;
+                              codeError = false;
+                            });
+
+                            FocusScope.of(context).unfocus();
+                            return;
+                          }
+                          //여기까지 개발용 우회 인증임
 
                           final provider = context.read<RegisterProvider>();
 
@@ -384,12 +423,6 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen>
                         );
 
                         if (ok) {
-                          final provider = context.read<RegisterProvider>();
-
-                          provider.setPhoneInfo(
-                            hp: phoneCtrl.text.trim(),
-                            userName: nameCtrl.text.trim(),
-                          );
 
                           setState(() {
                             codeError = false;
