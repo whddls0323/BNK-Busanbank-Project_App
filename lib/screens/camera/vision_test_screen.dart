@@ -127,12 +127,51 @@ class _VisionTestScreenState extends State<VisionTestScreen> {
         }),
       );
 
-      log('statusCode: ${response.statusCode}');
-      log('responseBody: ${response.body}');
+      //전체 json 확인용
+      //debugPrint('responseBody입니다: ${response.body}');
 
-      setState(() {
-        result = response.body;
-      });
+      //기본 세팅 @@@@@@@@@@@@@@@@
+      final decoded = jsonDecode(response.body);
+
+      final List labelAnnotations =
+          decoded['responses']?[0]?['labelAnnotations'] ?? [];
+
+      final List webEntities =
+          decoded['responses']?[0]?['webDetection']?['webEntities'] ?? [];
+
+      final Set<String> keywords = {
+        ...labelAnnotations
+            .map((e) => e['description'].toString().toLowerCase()),
+        ...webEntities
+            .map((e) => e['description'].toString().toLowerCase()),
+      };
+
+      print('KEYWORDS: $keywords');
+
+
+      //기본 세팅 @@@@@@@@@@@@@@@@
+      const targetKeywords = [
+        'tv',
+        'television',
+        'smart tv',
+        'monitor',
+      ];
+
+      bool hasTarget = targetKeywords.any(
+            (target) => keywords.any((k) => k.contains(target)),
+      );
+
+
+      if (hasTarget) {
+        setState(() {
+          result = '🎉 TV 인식 성공! 포인트 지급';
+        });
+      } else {
+        setState(() {
+          result = '❌ 대상 이미지 아님';
+        });
+      }
+
     } catch (e, s) {
       log('OCR EXCEPTION', error: e, stackTrace: s);
       setState(() {
