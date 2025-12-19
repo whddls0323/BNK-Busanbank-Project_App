@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:tkbank/providers/auth_provider.dart';
 import 'package:tkbank/providers/register_provider.dart';
 import 'package:tkbank/screens/camera/vision_test_screen.dart';
+import 'package:tkbank/screens/chatbot/chatbot_screen.dart';
 import 'package:tkbank/screens/cs/cs_support_screen.dart';
 import 'package:tkbank/screens/product/news_analysis_screen.dart';
 import 'package:tkbank/services/FcmService.dart';
@@ -270,6 +271,40 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // 2025/12/19 - 챗봇 연동 테스트 페이지 이동 추가 - 작성자: 오서정
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ChatbotScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.smart_toy_outlined),
+                    label: const Text(
+                      '챗봇 테스트(임시)',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF9C27B0),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
 
                 if (isLoggedIn)
                   SizedBox(
