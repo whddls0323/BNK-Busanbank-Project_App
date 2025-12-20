@@ -324,8 +324,11 @@ class _JoinStep3ScreenState extends State<JoinStep3Screen> {
           value: coupon.ucNo,
           groupValue: _selectedCouponId,
           onChanged: (value) {
+            print('📌 쿠폰 선택: couponId=$value');
+            print('📌 기존 선택: $_selectedCouponId');
             setState(() {
               _selectedCouponId = value;
+              print('📌 새 선택: $_selectedCouponId');
             });
           },
         ),

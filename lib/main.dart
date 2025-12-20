@@ -17,6 +17,7 @@ import 'package:tkbank/screens/product/join/join_step3_screen.dart';
 import 'package:tkbank/screens/product/join/join_step2_screen.dart';
 import 'package:tkbank/models/product_join_request.dart';
 import 'screens/my_page/my_page_screen.dart';
+import 'package:tkbank/screens/product/news_analysis_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +38,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  static const String baseUrl = 'http://10.0.2.2:8080/busanbank/api';
+  static const String baseUrl = 'http://당신IPv4:8080/busanbank/api';
 
   @override
   Widget build(BuildContext context) {

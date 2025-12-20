@@ -166,51 +166,63 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
 
                 // 하단 메뉴 (아이디 찾기 | 회원가입 | 비밀번호 찾기)
+                // 오버플로우 수정 - 수진
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const FindIdScreen()),
-                        );
-                      },
-                      child: const Text(
-                        '아이디 찾기',
-                        style: TextStyle(color: purple900),
-                      ),
-                    ),
-
-                    TextButton(
-                      onPressed: () {
-                        // 2025/12/18 - 아이디 찾기 화면 연결 - 작성자: 오서정
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const TermsScreen(),
+                    Expanded(  // ✅ 추가!
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const FindIdScreen()),
+                          );
+                        },
+                        child: const Text(
+                          '아이디 찾기',
+                          style: TextStyle(
+                            color: purple900,
+                            fontSize: 12,  // ✅ 14 → 12
                           ),
-                        );
-                      },
-                      child: const Text(
-                        '회원가입',
-                        style: TextStyle(
-                          color: purple900,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
 
-                    TextButton(
-                      onPressed: () {
-                        // 2025/12/18 - 비밀번호 찾기 화면 연결 - 작성자: 오서정
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => FindPwScreen(),
+                    Expanded(  // ✅ 추가!
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const TermsScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          '회원가입',
+                          style: TextStyle(
+                            color: purple900,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,  // ✅ 14 → 12
                           ),
-                        );
-                      },
-                      child: const Text(
-                        '비밀번호 찾기',
-                        style: TextStyle(color: purple900),
+                        ),
+                      ),
+                    ),
+
+                    Expanded(  // ✅ 추가!
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => FindPwScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          '비밀번호 찾기',
+                          style: TextStyle(
+                            color: purple900,
+                            fontSize: 12,  // ✅ 14 → 12
+                          ),
+                        ),
                       ),
                     ),
                   ],
