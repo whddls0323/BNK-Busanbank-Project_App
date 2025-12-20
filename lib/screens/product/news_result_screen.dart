@@ -319,13 +319,15 @@ class NewsResultScreen extends StatelessWidget {
                                       size: 20,
                                     ),
                                     const SizedBox(width: 4),
-                                    Text(
-                                      '최고금리: ${product.maturityRate!.toStringAsFixed(2)}%',
-                                      style: const TextStyle(
-                                        color: Colors.green,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
+                                    Flexible(  // ✅ 추가!
+                                      child: Text(
+                                        '${product.maturityRate?.toStringAsFixed(2)}%',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
                                       ),
+                                      overflow: TextOverflow.ellipsis,  // ✅ 추가!
+                                    ),
                                     ),
                                   ],
                                 ),

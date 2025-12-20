@@ -66,6 +66,9 @@ class _JoinStep2ScreenState extends State<JoinStep2Screen> {
     // ✅ STEP 2부터 로그인 체크! 있던거 삭제합니다!
     // _checkLoginAndLoadData();
 
+    // ✅ 지점 목록 로드!
+    _loadBranches();
+
     // 기존 값 복원
     final req = widget.request;
     if (req.principalAmount != null) {
@@ -86,6 +89,15 @@ class _JoinStep2ScreenState extends State<JoinStep2Screen> {
     }
     _smsNotify = req.notificationSms == 'Y';
     _emailNotify = req.notificationEmail == 'Y';
+
+    // ✅ 기존 선택값 복원
+    _selectedBranchId = req.branchId;
+    _selectedEmpId = req.empId;
+
+    // ✅ 지점이 이미 선택되어 있으면 직원 로드
+    if (_selectedBranchId != null) {
+      _loadEmployees(_selectedBranchId!);
+    }
   }
 
   /// ✅ 로그인 체크 및 데이터 로드 모두 주석처리!!!
