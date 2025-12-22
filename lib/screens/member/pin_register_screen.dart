@@ -1,5 +1,14 @@
+/*
+  날짜: 2025/12/22
+  내용: 간편 비밀번호 등록 UI 수정
+  이름: 오서정
+*/
 import 'package:flutter/material.dart';
 import 'package:tkbank/services/pin_storage_service.dart';
+
+const Color bnkPrimary = Color(0xFF6A1B9A);
+const Color bnkPrimarySoft = Color(0xFFF3E5F5);
+const Color bnkGray = Color(0xFF9CA3AF);
 
 class PinRegisterScreen extends StatefulWidget {
   const PinRegisterScreen({super.key});
@@ -9,6 +18,7 @@ class PinRegisterScreen extends StatefulWidget {
 }
 
 class _PinRegisterScreenState extends State<PinRegisterScreen> {
+
   final _pinService = PinStorageService();
 
   String _firstPin = '';
@@ -59,18 +69,46 @@ class _PinRegisterScreenState extends State<PinRegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('간편 비밀번호 등록'),
+        title: const Text(
+          '간편 비밀번호 등록',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: bnkPrimary,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: Column(
         children: [
           const SizedBox(height: 40),
 
-          Text(
-            _confirmStep
-                ? '간편 비밀번호를 다시 입력하세요'
-                : '간편 비밀번호 6자리를 입력하세요',
-            style: const TextStyle(fontSize: 18),
+          Padding(
+            padding: const EdgeInsets.only(top: 40),
+            child: Column(
+              children: [
+                Text(
+                  _confirmStep
+                      ? '간편 비밀번호를\n한 번 더 입력해주세요'
+                      : '간편 비밀번호를\n등록해주세요',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _confirmStep
+                      ? '앞에서 입력한 비밀번호와 동일해야 합니다.'
+                      : '로그인 시 사용할 6자리 숫자입니다.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
           ),
+
 
           const SizedBox(height: 24),
 
@@ -104,19 +142,22 @@ class _PinDots extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(6, (i) {
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 6),
+        final filled = i < length;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          margin: const EdgeInsets.symmetric(horizontal: 8),
           width: 14,
           height: 14,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: i < length ? Colors.black : Colors.grey.shade300,
+            color: filled ? bnkPrimary : Colors.grey.shade300,
           ),
         );
       }),
     );
   }
 }
+
 class _PinKeyPad extends StatelessWidget {
   final Function(String) onTap;
   final VoidCallback onDelete;
