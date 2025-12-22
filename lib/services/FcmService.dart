@@ -16,6 +16,18 @@ class FcmService { // 푸시 알림 서비스
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    print('알림 권한 상태: ${settings.authorizationStatus}');
+
+    final token = await messaging.getToken();
+    print('FCM Token: $token');
+
     _initLocalNotification();
     _registerForeground();
     _registerBackground();
@@ -60,7 +72,7 @@ class FcmService { // 푸시 알림 서비스
     _local.initialize(const InitializationSettings(android: init));
 
     const channel = AndroidNotificationChannel(
-      'high_importance_channel',
+      'high_importance_channel_v2',
       'High Importance Notifications',
       importance: Importance.high,
     );

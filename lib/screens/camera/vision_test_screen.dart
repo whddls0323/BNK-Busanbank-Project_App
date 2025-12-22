@@ -12,7 +12,7 @@ import 'package:tkbank/services/camera_point_service.dart';
 import '../../providers/auth_provider.dart';
 
 class VisionTestScreen extends StatefulWidget { //카메라, 갤러리 이미지를 이용해 일치시 포인트 획득 - 작성자: 윤종인
-  final String baseUrl = 'http://10.0.2.2:8080/busanbank/api';
+  final String baseUrl = 'http://192.168.0.212:8080/busanbank/api';
   const VisionTestScreen({super.key});
 
   @override
@@ -135,8 +135,9 @@ class _VisionTestScreenState extends State<VisionTestScreen> {
             {
               "image": {"content": base64Image},
               "features": [
-                {"type": "LABEL_DETECTION"},
-                {"type": "WEB_DETECTION"}
+                {"type": "LOGO_DETECTION"}, // {"type": "LABEL_DETECTION"},
+                {"type": "WEB_DETECTION"},
+                {"type": "TEXT_DETECTION"}
               ]
             }
           ]
@@ -149,16 +150,21 @@ class _VisionTestScreenState extends State<VisionTestScreen> {
       //기본 세팅 @@@@@@@@@@@@@@@@
       final decoded = jsonDecode(response.body);
 
-      final List labelAnnotations =
-          decoded['responses']?[0]?['labelAnnotations'] ?? [];
+      final List logoAnnotations =
+          decoded['responses']?[0]?['logoAnnotations'] ?? [];
 
       final List webEntities =
           decoded['responses']?[0]?['webDetection']?['webEntities'] ?? [];
 
+      final List textAnnotations =
+          decoded['responses']?[0]?['textAnnotations'] ?? [];
+
       final Set<String> keywords = {
-        ...labelAnnotations
+        ...logoAnnotations
             .map((e) => e['description'].toString().toLowerCase()),
         ...webEntities
+            .map((e) => e['description'].toString().toLowerCase()),
+        ...textAnnotations
             .map((e) => e['description'].toString().toLowerCase()),
       };
 
@@ -167,10 +173,8 @@ class _VisionTestScreenState extends State<VisionTestScreen> {
 
       //기본 세팅 @@@@@@@@@@@@@@@@
       const targetKeywords = [
-        'tv',
-        'television',
-        'smart tv',
-        'monitor',
+        'bnk',
+        '부산은행'
       ];
 
       bool hasTarget = targetKeywords.any(
@@ -180,10 +184,6 @@ class _VisionTestScreenState extends State<VisionTestScreen> {
 
       if (hasTarget && !isPointRequested) {
         isPointRequested = true;
-
-        setState(() {
-          result = '🎉 TV 인식 성공! 포인트 지급';
-        });
 
         await requestPoint();
       } else if (!hasTarget) {
@@ -209,6 +209,15 @@ class _VisionTestScreenState extends State<VisionTestScreen> {
       throw Exception('로그인이 필요합니다');
     }
 
-    final data = await cameraPointService.checkImage(userNo);
+    final Map<String, dynamic> data = await cameraPointService.checkImage(userNo);
+
+    final bool success = data['success'] == true;
+    final String message = data['message'] ?? '';
+
+    setState(() {
+      result = success
+          ? '🎉 포인트 ${data['point']} 지급 완료'
+          : '❌ $message';
+    });
   }
 }

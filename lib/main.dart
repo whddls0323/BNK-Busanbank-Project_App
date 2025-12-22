@@ -45,7 +45,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  static const String baseUrl = 'http://니꺼:8080/busanbank/api';
+  static const String baseUrl = 'http://10.0.2.2:8080/busanbank/api';
 
   @override
   Widget build(BuildContext context) {
