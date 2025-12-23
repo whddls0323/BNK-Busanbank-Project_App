@@ -12,7 +12,7 @@ import 'package:tkbank/screens/product/news_analysis_screen.dart';
 import 'package:tkbank/services/FcmService.dart';
 import 'package:tkbank/screens/member/login_screen.dart';
 import 'package:tkbank/services/token_storage_service.dart';
-import 'navigator_key.dart';
+import 'package:tkbank/screens/splash_screen.dart';
 import 'screens/product/product_main_screen.dart';
 import 'screens/member/point_history_screen.dart';
 import 'screens/game/game_menu_screen.dart';
@@ -22,6 +22,7 @@ import 'package:tkbank/screens/product/join/join_step2_screen.dart';
 import 'package:tkbank/models/product_join_request.dart';
 import 'screens/my_page/my_page_screen.dart';
 import 'screens/product/interest_calculator_screen.dart';  // ✅ 추가!
+import 'screens/splash_screen.dart'; // 25.12.22 천수빈
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,8 +58,6 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorSchemeSeed: const Color(0xFF6A1B9A),
       ),
-      navigatorKey: navigatorKey, // 푸시 알림 페이지 이동을 위한 키 설정 - 작성자: 윤종인
-      home: const HomeScreen(baseUrl: baseUrl),
       onGenerateRoute: (settings) {
         if (settings.name == '/product/join/step2') {
           final request = settings.arguments as ProductJoinRequest;
@@ -89,6 +88,7 @@ class MyApp extends StatelessWidget {
 
         return null;
       },
+      home: const SplashScreen(),
     );
   }
 }
@@ -417,7 +417,7 @@ class HomeScreen extends StatelessWidget {
                     },
                     icon: const Icon(Icons.camera_alt),
                     label: const Text(
-                      '로고 인증 이벤트',
+                      'OCR 테스트 (임시)',
                       style: TextStyle(fontSize: 18),
                     ),
                     style: ElevatedButton.styleFrom(
