@@ -4,13 +4,16 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:tkbank/providers/auth_provider.dart';
 import 'package:tkbank/providers/register_provider.dart';
+import 'package:tkbank/providers/seed_event_provider.dart';
 import 'package:tkbank/screens/camera/vision_test_screen.dart';
 import 'package:tkbank/screens/chatbot/chatbot_screen.dart';
 import 'package:tkbank/screens/cs/cs_support_screen.dart';
+import 'package:tkbank/screens/event/seed_event_screen.dart';
 import 'package:tkbank/screens/member/security_center_screen.dart';
 import 'package:tkbank/screens/product/news_analysis_screen.dart';
 import 'package:tkbank/services/FcmService.dart';
 import 'package:tkbank/screens/member/login_screen.dart';
+import 'package:tkbank/services/seed_event_service.dart';
 import 'package:tkbank/services/token_storage_service.dart';
 import 'package:tkbank/screens/splash_screen.dart';
 import 'screens/product/product_main_screen.dart';
@@ -38,6 +41,9 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => RegisterProvider()),
+        // 2025/12/23 -  금열매 이벤트 Provider 추가 - 작성자: 오서정
+        ChangeNotifierProvider(create: (_) => SeedEventProvider(SeedEventService()),),
+
       ],
       child: const MyApp(),
     ),
@@ -427,6 +433,36 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+
+                // 2025/12/23 -  금열매 이벤트 화면 연동 추가 - 작성자: 오서정
+                if (isLoggedIn) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SeedEventScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.calculate),
+                      label: const Text(
+                        '금열매 이벤트',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF9CF62E),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+
 
                 if (!isLoggedIn) ...[
                   SizedBox(
