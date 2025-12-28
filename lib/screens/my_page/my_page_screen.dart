@@ -1,5 +1,6 @@
 // 2025/12/18 - 마이페이지 메인 화면 - 작성자: 진원
 // 2025/12/23 - 프로필 수정 기능 추가 - 작성자: 진원
+// 2025/12/28 - 아바타 이미지 URL 처리 수정 - 작성자: 진원
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -7,6 +8,7 @@ import '../../services/member_service.dart';
 import '../../services/point_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/point.dart';
+import '../../config/api_config.dart';
 import 'profile_screen.dart';
 import 'profile_edit_screen.dart';
 import 'coupon_list_screen.dart';
@@ -96,6 +98,14 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
+  /// 아바타 URL을 전체 URL로 변환 (2025/12/28 - 작성자: 진원)
+  String _getFullAvatarUrl(String avatarUrl) {
+    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
+      return avatarUrl;
+    }
+    return '${ApiConfig.baseUrl}$avatarUrl';
+  }
+
   Widget _buildProfileSection() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final nickname = authProvider.nickname;
@@ -113,7 +123,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 radius: 40,
                 backgroundColor: Colors.white,
                 backgroundImage: avatarImage != null
-                    ? NetworkImage(avatarImage)
+                    ? NetworkImage(_getFullAvatarUrl(avatarImage))
                     : null,
                 child: avatarImage == null
                     ? const Icon(Icons.person, size: 50, color: Color(0xFF2196F3))

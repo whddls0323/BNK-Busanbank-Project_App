@@ -1,4 +1,5 @@
 // 2025/12/18 - 프로필 상세 화면 - 작성자: 진원
+// 2025/12/28 - 아바타 이미지 표시 추가 - 작성자: 진원
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -6,6 +7,7 @@ import '../../services/member_service.dart';
 import '../../services/point_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/point.dart';
+import '../../config/api_config.dart';
 import '../member/point_history_screen.dart';
 import '../../main.dart';
 
@@ -79,17 +81,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// 아바타 URL을 전체 URL로 변환 (2025/12/28 - 작성자: 진원)
+  String _getFullAvatarUrl(String avatarUrl) {
+    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
+      return avatarUrl;
+    }
+    return '${ApiConfig.baseUrl}$avatarUrl';
+  }
+
   Widget _buildHeader() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final avatarImage = authProvider.avatarImage;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       color: const Color(0xFF2196F3),
       child: Column(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 50,
             backgroundColor: Colors.white,
-            child: Icon(Icons.person, size: 60, color: Color(0xFF2196F3)),
+            backgroundImage: avatarImage != null
+                ? NetworkImage(_getFullAvatarUrl(avatarImage))
+                : null,
+            child: avatarImage == null
+                ? const Icon(Icons.person, size: 60, color: Color(0xFF2196F3))
+                : null,
           ),
           const SizedBox(height: 16),
           Text(
@@ -100,6 +118,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: Colors.white,
             ),
           ),
+          // 2025-12-28 - 닉네임 표시 추가 - 작성자: 진원
+          if (_userProfile?.nickname != null && _userProfile!.nickname!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              '닉네임: ${_userProfile?.nickname}',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.white70,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -113,6 +142,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           _buildInfoCard('기본 정보', [
             _buildInfoRow('로그인 ID', _userProfile?.userId ?? ''),
+            if (_userProfile?.nickname != null && _userProfile!.nickname!.isNotEmpty)
+              _buildInfoRow('닉네임', _userProfile?.nickname ?? ''),
             _buildInfoRow('이메일', _userProfile?.email ?? ''),
             _buildInfoRow('전화번호', _userProfile?.hp ?? ''),
             _buildInfoRow('최근 접속', _userProfile?.lastConnectTime ?? ''),

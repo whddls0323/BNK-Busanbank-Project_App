@@ -1,4 +1,5 @@
 // 2025/12/23 - 프로필 수정 화면 - 작성자: 진원
+// 2025/12/28 - 아바타 이미지 URL 처리 수정 - 작성자: 진원
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -6,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'dart:io';
 import '../../services/profile_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../config/api_config.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({Key? key}) : super(key: key);
@@ -189,6 +191,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
+  /// 아바타 URL을 전체 URL로 변환 (2025/12/28 - 작성자: 진원)
+  String _getFullAvatarUrl(String avatarUrl) {
+    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
+      return avatarUrl;
+    }
+    return '${ApiConfig.baseUrl}$avatarUrl';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -227,7 +237,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           backgroundImage: _selectedAvatar != null
                               ? FileImage(_selectedAvatar!)
                               : (_currentAvatarUrl != null
-                                  ? NetworkImage(_currentAvatarUrl!)
+                                  ? NetworkImage(_getFullAvatarUrl(_currentAvatarUrl!))
                                   : null) as ImageProvider?,
                           child: _selectedAvatar == null && _currentAvatarUrl == null
                               ? const Icon(Icons.person, size: 60, color: Colors.grey)

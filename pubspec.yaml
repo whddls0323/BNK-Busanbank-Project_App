@@ -63,7 +63,10 @@ dependencies:
   dio: ^5.4.0
 
   #2025/12/19 - OCR 텍스트 인식 의존성 추가 - 작성자: 진원
-  google_mlkit_text_recognition: ^0.11.0
+  google_mlkit_text_recognition: ^0.13.0
+
+  #2025/12/28 - 얼굴 감정 분석 게임 의존성 추가 - 작성자: 진원
+  google_mlkit_face_detection: ^0.10.0
 
   #2025/12/19 - 이미지 캐싱 의존성 추가 - 작성자: 진원
   cached_network_image: ^3.3.0
