@@ -3,6 +3,7 @@
   내용: 회원가입 주소 입력 추가
   작성자: 오서정
   수정: 2025/12/26 - 주소 추가 - 오서정
+  수정: 2025/12/29 - 이체한도 추가 - 오서정
  */
 import 'package:flutter/material.dart';
 import 'package:tkbank/services/member_service.dart';
@@ -10,21 +11,21 @@ import 'package:tkbank/services/member_service.dart';
 class RegisterProvider with ChangeNotifier {
   final MemberService _memberService = MemberService();
 
-  // STEP 2
   String? hp;
   String? userName;
 
-  // STEP 3
   String? rrn;
   String? zip;
   String? addr1;
   String? addr2;
 
-  // STEP 4
   String? userId;
   String? userPw;
   String? accountPassword;
   String? email;
+
+  int? onceLimit;
+  int? dailyLimit;
 
   /* =======================
      🔥 휴대폰 인증 로직
@@ -77,11 +78,15 @@ class RegisterProvider with ChangeNotifier {
     required String userPw,
     required String accountPassword,
     String? email,
+    int? onceLimit,
+    int? dailyLimit,
   }) {
     this.userId = userId;
     this.userPw = userPw;
     this.accountPassword = accountPassword;
     this.email = email;
+    this.onceLimit = onceLimit;
+    this.dailyLimit = dailyLimit;
     notifyListeners();
   }
 
@@ -98,6 +103,8 @@ class RegisterProvider with ChangeNotifier {
       "addr2": addr2,
       "accountPassword": accountPassword,
       "email": email,
+      "onceLimit": onceLimit,
+      "dailyLimit": dailyLimit,
     };
   }
 
@@ -112,5 +119,7 @@ class RegisterProvider with ChangeNotifier {
     userPw = null;
     accountPassword = null;
     email = null;
+    onceLimit = null;
+    dailyLimit = null;
   }
 }

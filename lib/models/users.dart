@@ -4,6 +4,7 @@
   작성자 : 오서정
   수정 : 2025/12/23 - 닉네임/아바타 필드 추가 - 진원
   수정 : 2025/12/26 - 주소 필드 추가- 작성자: 오서정
+  수정 : 2025/12/29 - 이체한도 필드 추가 - 작성자: 오서정
 */
 class Users{
 
@@ -20,6 +21,9 @@ class Users{
   String? addr1;
   String? addr2;
 
+  int? onceLimit;     // 1회 이체한도
+  int? dailyLimit;    // 1일 이체한도
+
   Users({
     required this.userNo,
     required this.userName,
@@ -33,6 +37,8 @@ class Users{
     this.zip,
     this.addr1,
     this.addr2,
+    this.onceLimit,
+    this.dailyLimit
   });
 
   Map<String, dynamic> toJson(){
@@ -49,6 +55,8 @@ class Users{
       "zip": zip,
       "addr1": addr1,
       "addr2": addr2,
+      "onceLimit": onceLimit,
+      "dailyLimit": dailyLimit,
     };
   }
 
@@ -67,6 +75,8 @@ class Users{
       zip: json['zip'],
       addr1: json['addr1'],
       addr2: json['addr2'],
+      onceLimit: json['onceLimit'],
+      dailyLimit: json['dailyLimit'],
     );
   }
 
