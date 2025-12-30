@@ -237,6 +237,7 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
+      color: product.isActive ? null : Colors.grey[100],
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -246,23 +247,41 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    product.productName,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          product.productName,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: product.isActive ? Colors.black : Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                      if (!product.isActive) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '(해지됨)',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.red[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: product.isActive ? Colors.green : Colors.grey,
+                    color: product.isActive ? Colors.green : Colors.red[700],
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    product.isActive ? '활성' : '해지',
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                    product.isActive ? '활성' : '해지됨',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
