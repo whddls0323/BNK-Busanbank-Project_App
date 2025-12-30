@@ -32,10 +32,15 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
       final authProvider = context.read<AuthProvider>();
       final userNo = authProvider.userNo;
 
+      print('[DEBUG] AuthProvider userNo: $userNo');
+      print('[DEBUG] AuthProvider userId: ${authProvider.userId}');
+      print('[DEBUG] AuthProvider userName: ${authProvider.userName}');
+
       if (userNo == null) {
         throw Exception('로그인 필요');
       }
 
+      print('[DEBUG] getUserProducts 호출 - userNo: $userNo');
       final products = await _productService.getUserProducts(userNo);
 
       setState(() {

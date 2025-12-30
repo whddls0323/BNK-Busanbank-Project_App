@@ -74,12 +74,17 @@ class AuthProvider with ChangeNotifier {
     try {
       final jsonData = await _memberService.login(userId, userPw);
 
+      print('[DEBUG] 백엔드 로그인 응답: $jsonData');
+
       final accessToken = jsonData['accessToken'];
       final userNo = jsonData['userNo'];
       final userIdFromApi = jsonData['userId'] ?? userId;
       final userName = jsonData['userName'] ?? '';
       final role = jsonData['role'] ?? 'USER';
       final refreshToken = jsonData['refreshToken'];
+
+      print('[DEBUG] userNo: $userNo (타입: ${userNo.runtimeType})');
+      print('[DEBUG] userId: $userIdFromApi (타입: ${userIdFromApi.runtimeType})');
 
       if (accessToken != null && userNo != null) {
         // 메모리에 저장 (shasha 호환)
