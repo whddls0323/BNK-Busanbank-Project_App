@@ -10,19 +10,16 @@ class UserProductService {
   final TokenStorageService _tokenStorage = TokenStorageService();
 
   // 사용자 가입 상품 목록 조회
-  // userId는 로그인 ID를 정수로 파싱한 값 사용
-  Future<List<UserProduct>> getUserProducts(String userId) async {
+  // userNo는 사용자 번호 (int)
+  Future<List<UserProduct>> getUserProducts(int userNo) async {
     final token = await _tokenStorage.readToken();
     final headers = {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
 
-    // userId를 정수로 변환
-    final userIdInt = int.parse(userId);
-
     final response = await http.get(
-      Uri.parse('$baseUrl/api/user-products/user/$userIdInt'),
+      Uri.parse('$baseUrl/api/user-products/user/$userNo'),
       headers: headers,
     );
 
@@ -40,18 +37,15 @@ class UserProductService {
   }
 
   // 활성 상품만 조회
-  Future<List<UserProduct>> getActiveProducts(String userId) async {
+  Future<List<UserProduct>> getActiveProducts(int userNo) async {
     final token = await _tokenStorage.readToken();
     final headers = {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
 
-    // userId를 정수로 변환
-    final userIdInt = int.parse(userId);
-
     final response = await http.get(
-      Uri.parse('$baseUrl/api/user-products/user/$userIdInt/active'),
+      Uri.parse('$baseUrl/api/user-products/user/$userNo/active'),
       headers: headers,
     );
 
@@ -70,7 +64,7 @@ class UserProductService {
 
   // 상품 해지 (2025/12/30 - 해지금 입금 계좌 추가 - 작성자: 진원)
   Future<Map<String, dynamic>> terminateProduct({
-    required String userId,
+    required int userNo,
     required int productNo,
     required String startDate,
     required String depositAccountNo, // 입금 계좌번호 추가
@@ -81,11 +75,8 @@ class UserProductService {
       if (token != null) 'Authorization': 'Bearer $token',
     };
 
-    // userId를 정수로 변환
-    final userIdInt = int.parse(userId);
-
     final response = await http.patch(
-      Uri.parse('$baseUrl/api/user-products/$userIdInt/$productNo/terminate?startDate=$startDate&depositAccountNo=$depositAccountNo'),
+      Uri.parse('$baseUrl/api/user-products/$userNo/$productNo/terminate?startDate=$startDate&depositAccountNo=$depositAccountNo'),
       headers: headers,
     );
 

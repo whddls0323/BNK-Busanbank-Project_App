@@ -30,13 +30,13 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
   Future<void> _loadProducts() async {
     try {
       final authProvider = context.read<AuthProvider>();
-      final userId = authProvider.userId;
+      final userNo = authProvider.userNo;
 
-      if (userId == null) {
+      if (userNo == null) {
         throw Exception('로그인 필요');
       }
 
-      final products = await _productService.getUserProducts(userId);
+      final products = await _productService.getUserProducts(userNo);
 
       setState(() {
         _products = products;
@@ -56,15 +56,14 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
   Future<void> _terminateProduct(UserProduct product) async {
     print('[DEBUG] 해지 버튼 클릭됨 - 상품명: ${product.productName}');
 
-    // Get userId before async operation to avoid BuildContext across async gaps
+    // Get userNo before async operation to avoid BuildContext across async gaps
     final authProvider = context.read<AuthProvider>();
-    final userId = authProvider.userId;
     final userNo = authProvider.userNo;
 
-    print('[DEBUG] userId: $userId');
+    print('[DEBUG] userNo: $userNo');
 
-    if (userId == null || userNo == null) {
-      print('[ERROR] userId가 null입니다');
+    if (userNo == null) {
+      print('[ERROR] userNo가 null입니다');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('로그인이 필요합니다')),
@@ -117,10 +116,10 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
     if (confirmed != true) return;
 
     try {
-      print('[DEBUG] 해지 요청 시작 - userId: $userId, productNo: ${product.productNo}, depositAccountNo: $depositAccountNo');
+      print('[DEBUG] 해지 요청 시작 - userNo: $userNo, productNo: ${product.productNo}, depositAccountNo: $depositAccountNo');
 
       final result = await _productService.terminateProduct(
-        userId: userId,
+        userNo: userNo,
         productNo: product.productNo,
         startDate: product.startDate,
         depositAccountNo: depositAccountNo,
