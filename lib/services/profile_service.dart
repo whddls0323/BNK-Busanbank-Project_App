@@ -3,6 +3,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
+import 'package:http_parser/http_parser.dart';
 import '../config/api_config.dart';
 import 'token_storage_service.dart';
 
@@ -94,11 +95,27 @@ class ProfileService {
         request.headers['Authorization'] = 'Bearer $token';
       }
 
-      // 파일 추가
+      // 파일 추가 (2025-12-28 수정 - contentType 명시 - 작성자: 진원)
+      String fileName = avatarFile.path.split('/').last;
+      String extension = fileName.split('.').last.toLowerCase();
+
+      // 확장자에 따른 MIME 타입 결정
+      MediaType contentType;
+      if (extension == 'jpg' || extension == 'jpeg') {
+        contentType = MediaType('image', 'jpeg');
+      } else if (extension == 'png') {
+        contentType = MediaType('image', 'png');
+      } else if (extension == 'gif') {
+        contentType = MediaType('image', 'gif');
+      } else {
+        contentType = MediaType('image', 'jpeg'); // 기본값
+      }
+
       request.files.add(
         await http.MultipartFile.fromPath(
           'avatar',
           avatarFile.path,
+          contentType: contentType,
         ),
       );
 
@@ -108,6 +125,9 @@ class ProfileService {
       print('[ProfileService] 아바타 업로드 - URL: $url');
       print('[ProfileService] userNo: $userNo');
       print('[ProfileService] 파일 경로: ${avatarFile.path}');
+      print('[ProfileService] 파일명: $fileName');
+      print('[ProfileService] 확장자: $extension');
+      print('[ProfileService] ContentType: ${contentType.mimeType}');
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);

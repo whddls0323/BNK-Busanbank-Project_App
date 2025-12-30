@@ -2,12 +2,15 @@
   날짜 : 2025/12/17
   내용 : 회원가입 계정 설정 구현
   작성자 : 오서정
+  수정: 2025/12/29 - 이체 한도 추가 - 작성자: 오서정
 */
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:tkbank/providers/register_provider.dart';
 import 'package:tkbank/screens/member/register_welcome_screen.dart';
 import 'package:tkbank/services/member_service.dart';
+import 'package:tkbank/utils/formatters/money_formatter.dart';
 import 'package:tkbank/utils/validators.dart';
 import 'package:tkbank/widgets/register_step_indicator.dart';
 
@@ -34,6 +37,9 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
   bool idChecked = false;
   bool idDuplicated = false;
 
+  final TextEditingController dailyLimitCtrl = TextEditingController();
+  final TextEditingController onceLimitCtrl = TextEditingController();
+
   // ======================
   // Focus
   // ======================
@@ -51,15 +57,80 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
   String? pwConfirmError;
   String? accountPwError;
   String? accountPwConfirmError;
+  String? dailyLimitError;
+  String? onceLimitError;
 
+
+  final FocusNode dailyLimitFocus = FocusNode();
+  final FocusNode onceLimitFocus = FocusNode();
   // ======================
   // Shake Animation
   // ======================
   late AnimationController _shakeCtrl;
   late Animation<double> _shakeAnim;
 
+
+  // ======================
+  // Transfer Limit
+  // ======================
+  int? onceLimit;
+  int? dailyLimit;
+
+  // 최소
+  static const int _minDailyLimit = 10000;     // 1만원
+  static const int _minOnceLimit  = 10000;     // 1만원
+
+  // 최대
+  static const int _maxDailyLimit = 500000000; // 5억원
+  static const int _maxOnceLimit  = 100000000; // 1억원
+
+
+
   bool showPw = false;
   bool showPwConfirm = false;
+
+  bool _validateLimits() {
+    bool ok = true;
+
+    final daily =
+    int.tryParse(dailyLimitCtrl.text.replaceAll(',', ''));
+    final once =
+    int.tryParse(onceLimitCtrl.text.replaceAll(',', ''));
+
+    setState(() {
+      dailyLimitError = null;
+      onceLimitError = null;
+    });
+
+    // 1일 한도
+    if (daily == null) {
+      dailyLimitError = '1일 이체한도를 입력해주세요.';
+      dailyLimitFocus.requestFocus();
+      ok = false;
+    } else if (daily < _minDailyLimit) {
+      dailyLimitError = '최소 ${_minDailyLimit ~/ 10000}만원 이상 입력해주세요.';
+      dailyLimitFocus.requestFocus();
+      ok = false;
+    } else {
+      dailyLimit = daily;
+    }
+
+    // 1회 한도
+    if (once == null) {
+      onceLimitError = '1회 이체한도를 입력해주세요.';
+      if (ok) onceLimitFocus.requestFocus();
+      ok = false;
+    } else if (once < _minOnceLimit) {
+      onceLimitError = '최소 ${_minOnceLimit ~/ 10000}만원 이상 입력해주세요.';
+      if (ok) onceLimitFocus.requestFocus();
+      ok = false;
+    } else {
+      onceLimit = once;
+    }
+
+    return ok;
+  }
+
 
   @override
   void initState() {
@@ -103,6 +174,8 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
     pwConfirmCtrl.dispose();
     accountPwCtrl.dispose();
     accountPwConfirmCtrl.dispose();
+    dailyLimitCtrl.dispose();
+    onceLimitCtrl.dispose();
     super.dispose();
   }
 
@@ -174,6 +247,13 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
     return idOk && pwOk && pwConfirmOk && accPwOk && accPwConfirmOk;
   }
 
+  Future<bool> _validateAllWithLimits() async {
+    final accountOk = await _validateAll();
+    final limitOk = _validateLimits();
+
+    return accountOk && limitOk;
+  }
+
   // ======================
   // UI
   // ======================
@@ -190,7 +270,7 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
           height: 56,
           child: ElevatedButton(
             onPressed: () async {
-              final ok = await _validateAll();
+              final ok = await _validateAllWithLimits();
               if (!ok) return;
 
               provider.setAccountInfo(
@@ -198,6 +278,8 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
                 userPw: pwCtrl.text.trim(),
                 accountPassword: accountPwCtrl.text.trim(),
                 email: provider.email,
+                onceLimit: onceLimit,
+                dailyLimit: dailyLimit,
               );
 
               await MemberService().register(provider.toJson());
@@ -303,6 +385,44 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
                   error: accountPwConfirmError,
                 ),
 
+
+                _limitInputRow(
+                  label: '1일 이체한도',
+                  required: true,
+                  controller: dailyLimitCtrl,
+                  focusNode: dailyLimitFocus,
+                  minLimit: _minDailyLimit,
+                  maxLimit: _maxDailyLimit,
+                  error: dailyLimitError,
+                  onMax: () {
+                    dailyLimitCtrl.text = _maxDailyLimit.toString();
+                    setState(() => dailyLimit = _maxDailyLimit);
+                  },
+                  onValueChanged: (v) {
+                    setState(() => dailyLimit = v);
+                  },
+                ),
+
+                _limitInputRow(
+                  label: '1회 이체한도',
+                  required: true,
+                  controller: onceLimitCtrl,
+                  focusNode: onceLimitFocus,
+                  minLimit: _minOnceLimit,
+                  maxLimit: _maxOnceLimit,
+                  error: onceLimitError,
+                  onMax: () {
+                    onceLimitCtrl.text = _maxOnceLimit.toString();
+                    setState(() => onceLimit = _maxOnceLimit);
+                  },
+                  onValueChanged: (v) {
+                    setState(() => onceLimit = v);
+                  },
+                ),
+
+
+
+
                 const SizedBox(height: 40),
                 ElevatedButton(
                   onPressed: () {
@@ -380,6 +500,7 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
               obscureText: obscure,
               keyboardType: keyboard,
               maxLength: maxLength,
+              textInputAction: TextInputAction.done,
               decoration: InputDecoration(
                 border: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -502,4 +623,230 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
     );
   }
 
+  Widget _maxButton(VoidCallback onTap) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.grey.shade300,
+          ),
+        ),
+        child: const Text(
+          '최대',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _limitInputRow({
+    required String label,
+    bool required = false,
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    required int minLimit,
+    required int maxLimit,
+    required VoidCallback onMax,
+    required ValueChanged<int?> onValueChanged,
+    String? error,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (required) ...[
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.circle,
+                  size: 6,
+                  color: Colors.red,
+                ),
+              ],
+            ],
+          ),
+
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 56,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: error != null ? Colors.red : Colors.transparent,
+                      width: 1.3,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            MaxValueFormatter(maxLimit),
+                            MoneyFormatter(),
+                          ],
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: '금액 입력',
+                          ),
+                          onChanged: (text) {
+                            final value = int.tryParse(text.replaceAll(',', ''));
+
+                            setState(() {
+                              if (label.contains('1일')) {
+                                if (value == null || value < minLimit) {
+                                  dailyLimitError = '최소 ${minLimit ~/ 10000}만원 이상 입력해주세요.';
+                                } else {
+                                  dailyLimitError = null;
+                                  dailyLimit = value;
+                                }
+                              } else {
+                                if (value == null || value < minLimit) {
+                                  onceLimitError = '최소 ${minLimit ~/ 10000}만원 이상 입력해주세요.';
+                                } else {
+                                  onceLimitError = null;
+                                  onceLimit = value;
+                                }
+                              }
+                            });
+                          },
+
+                          onEditingComplete: () {
+                            final value =
+                            int.tryParse(controller.text.replaceAll(',', ''));
+
+                            setState(() {
+                              if (label.contains('1일')) {
+                                if (value == null || value < minLimit) {
+                                  dailyLimitError = '최소 ${minLimit ~/ 10000}만원 이상 입력해주세요.';
+                                }
+                              } else {
+                                if (value == null || value < minLimit) {
+                                  onceLimitError = '최소 ${minLimit ~/ 10000}만원 이상 입력해주세요.';
+                                }
+                              }
+                            });
+                          },
+
+
+                        )
+                      ),
+                      Row(
+                        children: [
+                          const Text('원'),
+
+                          if (controller.text.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  controller.clear();
+
+                                  if (label.contains('1일')) {
+                                    dailyLimit = null;
+                                    dailyLimitError = '금액을 입력해주세요.';
+                                  } else {
+                                    onceLimit = null;
+                                    onceLimitError = '금액을 입력해주세요.';
+                                  }
+                                });
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade400,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              _maxButton(onMax),
+            ],
+          ),
+
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                error,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.red,
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 6),
+          Text(
+            '※ 최소 ${(minLimit ~/ 10000)}만원 ~ 최대 ${(maxLimit ~/ 10000)}만원',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+}
+
+
+class MaxValueFormatter extends TextInputFormatter {
+  final int max;
+  MaxValueFormatter(this.max);
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    if (newValue.text.isEmpty) return newValue;
+
+    final value = int.tryParse(newValue.text);
+    if (value == null) return oldValue;
+
+    if (value > max) return oldValue; // ✅ 초과 입력 차단
+    return newValue;
+  }
 }

@@ -7,9 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tkbank/providers/auth_provider.dart';
 import 'package:tkbank/screens/member/login_screen.dart';
+import 'package:tkbank/screens/member/otp_manage_screen.dart';
+import 'package:tkbank/screens/member/otp_register_screen.dart';
 import 'package:tkbank/screens/member/pin_register_screen.dart';
 import 'package:tkbank/services/biometric_auth_service.dart';
 import 'package:tkbank/services/biometric_storage_service.dart';
+import 'package:tkbank/services/otp_pin_storage_service.dart';
 import 'package:tkbank/services/pin_storage_service.dart';
 
 class SecurityCenterScreen extends StatefulWidget {
@@ -28,6 +31,7 @@ class _SecurityCenterScreenState extends State<SecurityCenterScreen> {
 
   bool _hasPin = false;
   bool _bioEnabled = false;
+  bool _otpRegistered = false;
 
   @override
   void initState() {
@@ -39,12 +43,15 @@ class _SecurityCenterScreenState extends State<SecurityCenterScreen> {
   Future<void> _loadSecurityStatus() async {
     final hasPin = await PinStorageService().hasPin();
     final bioEnabled = await BiometricStorageService().isEnabled();
+    final otpRegistered = await OtpPinStorageService().hasOtpPin();
+
 
     if (!mounted) return;
 
     setState(() {
       _hasPin = hasPin;
       _bioEnabled = bioEnabled;
+      _otpRegistered = otpRegistered;
     });
   }
 
@@ -154,6 +161,50 @@ class _SecurityCenterScreenState extends State<SecurityCenterScreen> {
                 }
               },
             ),
+
+            const SizedBox(height: 16),
+
+            _SecurityItem(
+              icon: Icons.phonelink_lock,
+              title: '디지털OTP',
+              subtitle: _otpRegistered
+                  ? '● 등록됨 · 이체·한도 변경 시 사용'
+                  : '이체·한도 변경용 보안수단 등록',
+              enabled: _otpRegistered,
+              onTap: () async {
+                if (_otpRegistered) {
+                  // ✅ 이미 등록 → 관리 화면
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const OtpManageScreen(),
+                    ),
+                  );
+
+                  // 관리 화면에서 돌아오면 상태 재확인
+                  await _loadSecurityStatus();
+                } else {
+                  // ✅ 미등록 → 등록 화면
+                  final result = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const OtpRegisterScreen(),
+                    ),
+                  );
+
+                  if (result == true) {
+                    await _loadSecurityStatus();
+                    if (!mounted) return;
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('OTP가 등록되었습니다')),
+                    );
+                  }
+                }
+              },
+            ),
+
+
           ],
         ),
       ),
@@ -161,6 +212,8 @@ class _SecurityCenterScreenState extends State<SecurityCenterScreen> {
 
 
   }
+
+
 
   Future<void> _confirmRemovePin() async {
     final ok = await showDialog<bool>(
@@ -221,6 +274,7 @@ class _SecurityCenterScreenState extends State<SecurityCenterScreen> {
       );
     }
   }
+
 
 }
 class _SecurityItem extends StatelessWidget {
@@ -300,7 +354,9 @@ class _SecurityItem extends StatelessWidget {
         ),
       ),
     );
+
   }
+
 }
 
 

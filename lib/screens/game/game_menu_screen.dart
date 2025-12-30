@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'attendance_check_screen.dart';
 import 'branch_map_webview_screen.dart';
 import '../esg_fishing_screen.dart';
+import 'emotion_game_screen.dart';
 
 // 2025-12-16 - 금융게임 메뉴 화면 (출석체크, 영업점체크인) - 작성자: 진원
 // 2025-12-17 - 영업점 체크인 카카오맵 WebView로 변경 - 작성자: 진원
 // 2025-12-20 - ESG 낚시 게임 추가 - 작성자: 진원
+// 2025-12-28 - 감정 분석 게임 추가 - 작성자: 진원
 class GameMenuScreen extends StatelessWidget {
   final String baseUrl;
 
@@ -216,7 +218,7 @@ class GameMenuScreen extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                '🌊 ESG 바다 청소',
+                                'ESG 바다 청소',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -225,6 +227,71 @@ class GameMenuScreen extends StatelessWidget {
                               SizedBox(height: 2),
                               Text(
                                 '쓰레기 수거하고 포인트 받기',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 감정 분석 게임 버튼
+            SizedBox(
+              width: double.infinity,
+              child: Card(
+                elevation: 4,
+                child: InkWell(
+                  onTap: () {
+                    // 2025-12-28 - 감정 분석 게임으로 이동 - 작성자: 진원
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const EmotionGameScreen(),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF9800).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.emoji_emotions,
+                            size: 32,
+                            color: Color(0xFFFF9800),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '감정 분석 게임',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                '웃고, 표현하고 포인트 받기',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.grey,

@@ -123,27 +123,29 @@ class _AttendanceCheckScreenState extends State<AttendanceCheckScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '${data['earnedPoints']} 포인트 적립!',
+                    '${data['earnedPoints']}P 적립!',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
+                      color: Color(0xFF4CAF50),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '연속 ${data['consecutiveDays']}일 출석 중',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                  if (data['bonusPoints'] != null && data['bonusPoints'] > 0) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      '🎉 보너스 ${data['bonusPoints']}P 추가!',
-                      style: const TextStyle(
-                        color: Colors.orange,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '(${data['consecutiveDays']} x 10P)',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
                 ],
               ),
               actions: [
@@ -328,8 +330,9 @@ class _AttendanceCheckScreenState extends State<AttendanceCheckScreen> {
                     ],
                   ),
                   SizedBox(height: 8),
-                  Text('• 매일 출석하면 10 포인트를 받을 수 있어요'),
-                  Text('• 7일 연속 출석 시 보너스 50 포인트 지급'),
+                  Text('• 연속 출석일수 x 10 포인트를 받을 수 있어요'),
+                  Text('• 예: 7일 연속 = 70P, 30일 연속 = 300P'),
+                  Text('• 이번주 출석현황은 매주 월요일에 초기화돼요'),
                   Text('• 포인트는 다양한 혜택으로 사용 가능해요'),
                 ],
               ),
