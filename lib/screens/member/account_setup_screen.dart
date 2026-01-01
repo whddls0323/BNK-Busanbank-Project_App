@@ -81,8 +81,8 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
   static const int _minOnceLimit  = 10000;     // 1만원
 
   // 최대
-  static const int _maxDailyLimit = 500000000; // 5억원
-  static const int _maxOnceLimit  = 100000000; // 1억원
+  static const int _maxDailyLimit = 5000000; // 500만원
+  static const int _maxOnceLimit  = 5000000; // 500만원
 
 
 
@@ -384,6 +384,32 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
                   keyboard: TextInputType.number,
                   error: accountPwConfirmError,
                 ),
+                const Text('이체한도 설정', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline, size: 18, color: Colors.grey.shade700),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '디지털OTP 미등록 시 이체한도는 1회/1일 최대 500만원입니다.\n'
+                              '디지털OTP 등록 후 최대 1회 1억원 / 1일 5억원까지 설정할 수 있습니다.',
+                          style: TextStyle(fontSize: 13, color: Colors.grey.shade800, height: 1.35),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
 
 
                 _limitInputRow(
@@ -422,18 +448,7 @@ class _AccountSetupScreenState extends State<AccountSetupScreen>
 
 
 
-
-                const SizedBox(height: 40),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => RegisterWelcomeScreen()),
-                    );
-                  },
-                  child: const Text('다음 (개발용)'),
-                ),
-
+                
               ],
             ),
           ),

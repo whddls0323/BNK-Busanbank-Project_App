@@ -169,7 +169,7 @@ class _SecurityCenterScreenState extends State<SecurityCenterScreen> {
               icon: Icons.phonelink_lock,
               title: '디지털OTP',
               subtitle: _otpRegistered
-                  ? '● 등록됨 · 이체·한도 변경 시 사용'
+                  ? '● 등록됨 · 이체한도 변경 시 사용'
                   : '이체·한도 변경용 보안수단 등록',
               enabled: _otpRegistered,
               onTap: () async {
@@ -204,7 +204,7 @@ class _SecurityCenterScreenState extends State<SecurityCenterScreen> {
                 }
               },
             ),
-
+/*
             ListTile(
               leading: const Icon(Icons.sync_alt),
               title: const Text('이체한도 변경'),
@@ -218,8 +218,7 @@ class _SecurityCenterScreenState extends State<SecurityCenterScreen> {
                 );
               },
             ),
-
-
+*/
           ],
         ),
       ),
