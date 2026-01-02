@@ -5,7 +5,7 @@ class IdleManager {
   static final IdleManager instance = IdleManager._();
 
   Timer? _timer;
-  Duration _timeout = const Duration(minutes: 10);
+  Duration _timeout = const Duration(minutes: 20);
 
   bool _enabled = false;
   bool _handled = false;
