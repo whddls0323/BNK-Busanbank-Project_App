@@ -3,6 +3,7 @@
   내용 : 사용자 정보 저장 기능 추가, shasha + test 병합
   작성자 : 진원, 수진
 */
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:tkbank/services/biometric_storage_service.dart';
@@ -63,6 +64,7 @@ class AuthProvider with ChangeNotifier {
       _role = await _storage.read(key: 'role');
       _nickname = await _storage.read(key: 'nickname');           // 2025/12/23 - 닉네임 로드 - 작성자: 진원
       _avatarImage = await _storage.read(key: 'avatarImage');     // 2025/12/23 - 아바타 이미지 로드 - 작성자: 진원
+      await _subscribeUserTopic(); //2025.12.29 - 푸시알림 - 작성자: 윤종인
 
       // 해당 Provider를 구독하고 있는 Consumer 알림
       notifyListeners();
@@ -75,6 +77,7 @@ class AuthProvider with ChangeNotifier {
       final jsonData = await _memberService.login(userId, userPw);
 
       print('[DEBUG] 백엔드 로그인 응답: $jsonData');
+      print('[DEBUG] 서버 응답 전체: $jsonData'); // 26.01.01_home screen 고객 이름 뜨게 하기_수빈
 
       final accessToken = jsonData['accessToken'];
       final userNo = jsonData['userNo'];
@@ -85,6 +88,7 @@ class AuthProvider with ChangeNotifier {
 
       print('[DEBUG] userNo: $userNo (타입: ${userNo.runtimeType})');
       print('[DEBUG] userId: $userIdFromApi (타입: ${userIdFromApi.runtimeType})');
+      print('[DEBUG] userName 파싱 결과: $userName'); // 26.01.01_home screen 고객 이름 뜨게 하기_수빈
 
       if (accessToken != null && userNo != null) {
         // 메모리에 저장 (shasha 호환)
@@ -94,6 +98,8 @@ class AuthProvider with ChangeNotifier {
         _userId = userIdFromApi;
         _userName = userName;
         _role = role;
+
+        print('[DEBUG] _userName 저장 완료: $_userName'); // 26.01.01_home screen 고객 이름 뜨게 하기_수빈
 
         // 암호화 저장소에 저장 (test 방식)
         await _tokenStorageService.saveToken(accessToken);
@@ -121,6 +127,7 @@ class AuthProvider with ChangeNotifier {
         await _simpleLoginStorage.saveUserId(_userId!);
 
         _isLoggedIn = true;
+        await _subscribeUserTopic(); // 2025.12.29 - 푸시알림 - 작성자: 윤종인
         notifyListeners();
       } else {
         throw Exception('로그인 응답에 필수 정보가 없습니다');
@@ -131,6 +138,11 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    if (_userNo != null) { // 2025.12.29 - 푸시알림 - 작성자: 윤종인
+      await FirebaseMessaging.instance.unsubscribeFromTopic('user_$_userNo');
+      debugPrint('❌ FCM user topic 해제: user_$_userNo');
+    }
+
     await _tokenStorageService.deleteToken();
 
     // 사용자 정보 삭제
@@ -175,6 +187,7 @@ class AuthProvider with ChangeNotifier {
     _avatarImage = await _storage.read(key: 'avatarImage');     // 2025/12/23 - 아바타 이미지 로드 - 작성자: 진원
 
     _isLoggedIn = true;
+    await _subscribeUserTopic(); // 2025.12.29 - 푸시알림 - 작성자: 윤종인
     notifyListeners();
   }
 
@@ -205,6 +218,7 @@ class AuthProvider with ChangeNotifier {
     }
 
     _isLoggedIn = true;
+    await _subscribeUserTopic(); //푸시알림 - 작성자: 윤종인 2025.12.29
     notifyListeners();
   }
 
@@ -237,5 +251,11 @@ class AuthProvider with ChangeNotifier {
   }
 
 
+  Future<void> _subscribeUserTopic() async { // 푸시 알림 - 작성자: 윤종인 2025.12.29
+    if (_userNo == null) return;
+
+    await FirebaseMessaging.instance.subscribeToTopic('user_$_userNo');
+    debugPrint('✅ FCM user topic 구독: user_$_userNo');
+  }
 
 }
