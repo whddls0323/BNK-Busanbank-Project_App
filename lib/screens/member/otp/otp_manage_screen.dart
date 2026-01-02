@@ -1,5 +1,12 @@
+/*
+  날짜: 2025/12/29
+  내용: OTP 관련 기능 화면
+  이름: 오서정
+*/
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:tkbank/screens/member/otp/otp_generate_screen.dart';
 import 'package:tkbank/screens/member/otp/otp_issue_intro_screen.dart';
 import 'package:tkbank/screens/member/otp/otp_pin_register_screen.dart';
 import 'package:tkbank/screens/member/otp/otp_pin_verify_screen.dart';
@@ -61,7 +68,7 @@ class OtpManageScreen extends StatelessWidget {
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const OtpPinVerifyScreen(),
+                  builder: (_) => const OtpPinVerifyScreen(mode: OtpPinVerifyMode.revoke),
                 ),
               );
 
@@ -93,7 +100,7 @@ class OtpManageScreen extends StatelessWidget {
               final verifyResult = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const OtpPinVerifyScreen(),
+                  builder: (_) => const OtpPinVerifyScreen(mode: OtpPinVerifyMode.reRegister),
                 ),
               );
 
@@ -111,6 +118,24 @@ class OtpManageScreen extends StatelessWidget {
                     const SnackBar(content: Text('PIN번호가 재등록되었습니다.')),
                   );
                 }
+              }
+            },
+          ),
+
+          _menuItem(
+            context,
+            title: 'OTP 인증번호 생성',
+            onTap: () async {
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(builder: (_) => const OtpGenerateScreen()),
+              );
+
+              // 필요하면 상위 화면에 "생성됨" 신호 전달 가능
+              if (result == true && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('OTP가 생성되었습니다.')),
+                );
               }
             },
           ),

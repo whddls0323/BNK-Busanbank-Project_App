@@ -13,10 +13,12 @@ import '../screens/btc/Bitcoin_fail_page.dart';
 import '../screens/btc/Bitcoin_success_page.dart';
 import '../screens/camera/vision_test_screen.dart';
 import '../screens/game/game_menu_screen.dart';
+import '../screens/my_page/my_products_screen.dart';
 import '../screens/product/news_analysis_screen.dart';
 import '../screens/product/product_main_screen.dart';
 import 'bitcoin_service.dart';
 import 'fcm_background_handler.dart';
+import 'package:tkbank/screens/home/easy_home_screen.dart';
 
 class FcmService { // 푸시 알림 서비스
   static final BitcoinService _bitcoinService = BitcoinService();
@@ -215,9 +217,15 @@ class FcmService { // 푸시 알림 서비스
         );
         break;
 
+      case '/myProduct':
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(builder: (_) => MyProductsScreen()),
+        );
+        break;
+
       default:
         navigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (_) => const HomeScreen(baseUrl: baseUrl)),
+          MaterialPageRoute(builder: (_) => const EasyHomeScreen(baseUrl: baseUrl)),
         );
     }
   }

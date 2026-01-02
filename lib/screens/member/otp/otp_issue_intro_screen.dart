@@ -1,3 +1,9 @@
+/*
+  날짜: 2025/12/29
+  내용: OTP 등록 안내 화면
+  이름: 오서정
+*/
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:tkbank/screens/member/otp/otp_register_screen.dart';

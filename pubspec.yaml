@@ -101,6 +101,9 @@ dependencies:
   kpostal: ^1.1.0
   flutter_inappwebview: ^6.1.5
 
+  # 2025/01/01 - 신분증(OCR) 이미지 인식 의존성 추가 - 작성자: 오서정
+  image: ^4.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

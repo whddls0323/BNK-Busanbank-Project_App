@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tkbank/services/product_push_service.dart';
 import '../../../models/product_join_request.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../services/flutter_api_service.dart';
 import '../../../services/token_storage_service.dart';
 import '../../member/login_screen.dart';
@@ -28,6 +31,8 @@ class JoinStep4Screen extends StatefulWidget {
 
 class _JoinStep4ScreenState extends State<JoinStep4Screen> {
   late FlutterApiService _apiService;
+  final ProductPushService _productPushService = ProductPushService();  //가입 완료 푸시 알림 - 작성자: 윤종인 2025.12.31
+
   bool _finalAgree = false;
   bool _loading = false;
 
@@ -200,6 +205,9 @@ class _JoinStep4ScreenState extends State<JoinStep4Screen> {
 
       if (!mounted) return;
 
+      //가입 완료 푸시 알림 - 작성자: 윤종인 2025.12.31
+      await _joinProductNotification(widget.request);
+
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -260,6 +268,30 @@ class _JoinStep4ScreenState extends State<JoinStep4Screen> {
 
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _joinProductNotification(ProductJoinRequest request) async { //가입 완료 푸시 알림 - 작성자: 윤종인 2025.12.31
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final userNo = authProvider.userNo;
+      print('userNo 테스트: $userNo');
+
+      if (userNo == null) {
+        print('사용자 정보가 없습니다.');
+        return;
+      }
+
+      print('[PUSH] 알림 전송 시작 (productName: ${request.productName})');
+
+      await _productPushService.productPush(
+          request.productName,
+          userNo.toString(),
+          needsAuth: true
+      );
+      print('[PUSH] 알림 전송 성공');
+    } catch (e) {
+      print('[PUSH] 알림 전송 실패: $e');
+    }
   }
 
   @override

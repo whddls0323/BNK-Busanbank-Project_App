@@ -1,5 +1,6 @@
 // 2025/12/18 - 설정 메뉴 화면 - 작성자: 진원
 import 'package:flutter/material.dart';
+import 'package:tkbank/screens/member/transfer_limit_screen.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
 import 'withdraw_account_screen.dart';
@@ -38,6 +39,21 @@ class SettingsScreen extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
             ),
           ),
+
+          // 2026/01/01 - 이체한도 설정 연결 페이지 추가 - 작성자: 오서정
+          const Divider(),
+          _buildSectionHeader('거래 · 보안'),
+          _buildMenuItem(
+            context,
+            icon: Icons.sync_alt,
+            title: '이체한도 변경',
+            subtitle: '이체 한도를 조정',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const TransferLimitScreen()),
+            ),
+          ),
+
           const Divider(),
           _buildSectionHeader('계정 관리'),
           _buildMenuItem(

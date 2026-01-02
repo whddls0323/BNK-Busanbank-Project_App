@@ -76,12 +76,16 @@ class AuthProvider with ChangeNotifier {
     try {
       final jsonData = await _memberService.login(userId, userPw);
 
+      print('[DEBUG] 서버 응답 전체: $jsonData'); // 26.01.01_home screen 고객 이름 뜨게 하기_수빈
+
       final accessToken = jsonData['accessToken'];
       final userNo = jsonData['userNo'];
       final userIdFromApi = jsonData['userId'] ?? userId;
       final userName = jsonData['userName'] ?? '';
       final role = jsonData['role'] ?? 'USER';
       final refreshToken = jsonData['refreshToken'];
+
+      print('[DEBUG] userName 파싱 결과: $userName'); // 26.01.01_home screen 고객 이름 뜨게 하기_수빈
 
       if (accessToken != null && userNo != null) {
         // 메모리에 저장 (shasha 호환)
@@ -91,6 +95,8 @@ class AuthProvider with ChangeNotifier {
         _userId = userIdFromApi;
         _userName = userName;
         _role = role;
+
+        print('[DEBUG] _userName 저장 완료: $_userName'); // 26.01.01_home screen 고객 이름 뜨게 하기_수빈
 
         // 암호화 저장소에 저장 (test 방식)
         await _tokenStorageService.saveToken(accessToken);

@@ -339,5 +339,78 @@ class MemberService{
       throw Exception('간편 로그인 실패');
     }
   }
+// 2026/01/02 - 신분증 OCR 추가 - 작성자: 오서정
+  Future<String> idOcrByVision({required String base64}) async {
+    final resp = await http.post(
+      Uri.parse('$baseUrl/api/member/id-ocr'),
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode({'base64': base64}),
+    );
+
+    if (resp.statusCode != 200) {
+      throw Exception('id-ocr failed: ${resp.statusCode} ${resp.body}');
+    }
+
+    final decoded = jsonDecode(resp.body);
+    return (decoded['text'] ?? '').toString();
+  }
+
+  Future<bool> verifyIdWithDb({
+    required String userName,
+    required String rrn,
+  }) async {
+    final headers = await _getHeaders(needsAuth: true);
+
+    final resp = await http.post(
+      Uri.parse('$baseUrl/api/member/id-verify'),
+      headers: headers,
+      body: jsonEncode({
+        'userName': userName,
+        'rrn': rrn,
+      }),
+    );
+
+    if (resp.statusCode != 200) {
+      throw Exception('id-verify failed: ${resp.statusCode} ${resp.body}');
+    }
+
+    final decoded = jsonDecode(resp.body);
+    return decoded['matched'] == true;
+  }
+
+  // 2026/01/02 - OTP 핸드폰 인증 추가 - 작성자: 오서정
+  Future<String> sendOtpHpCode({required String hp}) async {
+    final headers = await _getHeaders(needsAuth: true);
+
+    final res = await http.post(
+      Uri.parse('$baseUrl/api/member/otp/hp/send'),
+      headers: headers,
+      body: jsonEncode({'hp': hp}),
+    );
+
+    if (res.statusCode == 200) {
+      return utf8.decode(res.bodyBytes);
+    } else {
+      throw Exception(utf8.decode(res.bodyBytes));
+    }
+  }
+
+  Future<bool> verifyOtpHpCode({
+    required String hp,
+    required String code,
+  }) async {
+    final headers = await _getHeaders(needsAuth: true);
+
+    final res = await http.post(
+      Uri.parse('$baseUrl/api/member/otp/hp/verify'),
+      headers: headers,
+      body: jsonEncode({'hp': hp, 'code': code}),
+    );
+
+    if (res.statusCode != 200) return false;
+
+    final data = jsonDecode(res.body);
+    return data['isMatched'] == true;
+  }
 }
 

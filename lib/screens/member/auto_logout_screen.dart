@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:tkbank/main.dart';
 import 'package:tkbank/providers/auth_provider.dart';
 import 'package:tkbank/services/token_storage_service.dart';
+import 'package:tkbank/screens/home/easy_home_screen.dart';
 
 // 색상 정의
 const Color bnkPrimary = Color(0xFF6A1B9A);
@@ -84,7 +85,7 @@ class _AutoLogoutScreenState extends State<AutoLogoutScreen> {
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => HomeScreen(baseUrl: MyApp.baseUrl), // 필수 파라미터 전달
+                        builder: (_) => EasyHomeScreen(baseUrl: MyApp.baseUrl), // 필수 파라미터 전달
                       ),
                           (route) => false,
                     );

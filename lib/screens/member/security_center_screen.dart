@@ -169,42 +169,31 @@ class _SecurityCenterScreenState extends State<SecurityCenterScreen> {
               icon: Icons.phonelink_lock,
               title: '디지털OTP',
               subtitle: _otpRegistered
-                  ? '● 등록됨 · 이체·한도 변경 시 사용'
+                  ? '● 등록됨 · 이체한도 변경 시 사용'
                   : '이체·한도 변경용 보안수단 등록',
               enabled: _otpRegistered,
-              onTap: () async {
-                if (_otpRegistered) {
-                  // ✅ 이미 등록 → 관리 화면
+                onTap: () async {
+                  final before = _otpRegistered;
+
                   await Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const OtpManageScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const OtpManageScreen()),
                   );
 
-                  // 관리 화면에서 돌아오면 상태 재확인
                   await _loadSecurityStatus();
-                } else {
-                  // ✅ 미등록 → 등록 화면
-                  final result = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const OtpManageScreen(),
-                    ),
-                  );
 
-                  if (result == true) {
-                    await _loadSecurityStatus();
-                    if (!mounted) return;
+                  if (!mounted) return;
 
+                  // ✅ false -> true로 바뀐 순간만
+                  if (!before && _otpRegistered) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('OTP가 등록되었습니다')),
                     );
                   }
-                }
-              },
-            ),
+                },
 
+            ),
+/*
             ListTile(
               leading: const Icon(Icons.sync_alt),
               title: const Text('이체한도 변경'),
@@ -218,8 +207,7 @@ class _SecurityCenterScreenState extends State<SecurityCenterScreen> {
                 );
               },
             ),
-
-
+*/
           ],
         ),
       ),
