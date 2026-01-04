@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:tkbank/call/agora_call_screen.dart';
+import 'package:tkbank/config/api_config.dart';
 
 import 'voice_call_api.dart';
 import 'voice_call_controller.dart';
@@ -18,18 +19,15 @@ class _CallScreenState extends State<CallScreen> {
 
   String _log = '';
 
-  // ✅ HTTP baseUrl
-  static const String baseUrl = 'http://10.0.2.2:8080/busanbank';
-
-  // ✅ WS base (http가 아니라 ws)
-  static const String baseWs = 'ws://10.0.2.2:8080/busanbank';
+  final String baseUrl = ApiConfig.baseUrl;
+  final String baseWs  = ApiConfig.wsBase;
 
   @override
   void initState() {
     super.initState();
 
     controller = VoiceCallController(
-      api: VoiceCallApi(baseUrl: baseUrl),
+      api: VoiceCallApi(baseUrl: ApiConfig.baseUrl),
       ws: VoiceWebSocketService(),
     )
       ..addListener(() => setState(() {}))
@@ -105,7 +103,7 @@ class _CallScreenState extends State<CallScreen> {
                       _append('[OK] WAITING... (WS connect)');
 
                       // ✅ enqueue 성공 후 고객 WS 연결
-                      controller.attachWs(baseWs: baseWs);
+                      controller.attachWs(baseWs: ApiConfig.wsBase);
                     }
                         : null,
                   ),
