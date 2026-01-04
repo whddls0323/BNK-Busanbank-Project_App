@@ -2,6 +2,7 @@
 // 2025/12/23 - 프로필 수정 기능 추가 - 작성자: 진원
 // 2025/12/28 - 아바타 이미지 URL 처리 수정 - 작성자: 진원
 // 2025/12/29 - 내 계좌 메뉴 추가 - 작성자: 진원
+// 2026/01/04 - 이체한도 변경 메뉴 추가 및 포인트 정보 개선 - 작성자: 진원
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -13,8 +14,8 @@ import '../../config/api_config.dart';
 import 'profile_screen.dart';
 import 'profile_edit_screen.dart';
 import 'coupon_list_screen.dart';
-import 'my_products_screen.dart';
 import 'settings_screen.dart';
+import '../member/point_history_screen.dart';
 import '../account/account_list_screen.dart';
 
 class MyPageScreen extends StatefulWidget {
@@ -184,7 +185,22 @@ class _MyPageScreenState extends State<MyPageScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildStatItem('보유 포인트', '${_point?.availablePoints ?? 0}P'),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          PointHistoryScreen(baseUrl: ApiConfig.baseUrl),
+                    ),
+                  );
+                },
+                child: _buildStatItemWithSubtext(
+                  '보유 포인트',
+                  '${_point?.availablePoints ?? 0}P',
+                  '상세보기 >',
+                ),
+              ),
               _buildStatItem('가입 상품', '${_userProfile?.countUserItems ?? 0}개'),
             ],
           ),
@@ -208,6 +224,35 @@ class _MyPageScreenState extends State<MyPageScreen> {
         Text(
           label,
           style: const TextStyle(fontSize: 12, color: Colors.white70),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatItemWithSubtext(String label, String value, String subtext) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Colors.white70),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtext,
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.white60,
+            fontStyle: FontStyle.italic,
+          ),
         ),
       ],
     );
@@ -238,14 +283,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const CouponListScreen()),
-          ),
-        ),
-        _buildMenuItem(
-          icon: Icons.account_balance_wallet,
-          title: '나의 금융상품',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const MyProductsScreen()),
           ),
         ),
         _buildMenuItem(

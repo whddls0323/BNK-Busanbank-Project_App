@@ -1,5 +1,6 @@
 // 2025/12/16 - 포인트 이력 조회 화면 - 작성자: 진원
 // 2025/12/17 - 실제 API 연동으로 변경 (목 데이터 제거) - 작성자: 진원
+// 2026/01/04 - 포인트 상세 정보 표시 개선 - 작성자: 진원
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -17,6 +18,8 @@ class PointHistoryScreen extends StatefulWidget {
 class _PointHistoryScreenState extends State<PointHistoryScreen> {
   late FlutterApiService _apiService;
   int _totalPoints = 0;
+  int _availablePoints = 0;
+  int _usedPoints = 0;
   bool _isLoading = true;
   String? _errorMessage;
   List<dynamic> _historyList = [];
@@ -63,6 +66,8 @@ class _PointHistoryScreenState extends State<PointHistoryScreen> {
       if (mounted) {
         setState(() {
           _totalPoints = pointData['totalPoints'] ?? 0;
+          _availablePoints = pointData['availablePoints'] ?? 0;
+          _usedPoints = pointData['usedPoints'] ?? 0;
           _historyList = historyData;
           _isLoading = false;
         });
@@ -155,24 +160,92 @@ class _PointHistoryScreenState extends State<PointHistoryScreen> {
       child: Column(
         children: [
           const Text(
-            '보유 포인트',
+            '포인트 현황',
             style: TextStyle(
-              fontSize: 16,
-              color: Colors.white70,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${_totalPoints.toString().replaceAllMapped(
-                  RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                  (Match m) => '${m[1]},',
-                )} P',
-            style: const TextStyle(
-              fontSize: 36,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
+          const SizedBox(height: 20),
+
+          // 총 포인트
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '총 포인트',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
+              ),
+              Text(
+                '${_totalPoints.toString().replaceAllMapped(
+                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                      (Match m) => '${m[1]},',
+                    )} P',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 사용가능 포인트
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '사용가능 포인트',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
+              ),
+              Text(
+                '${_availablePoints.toString().replaceAllMapped(
+                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                      (Match m) => '${m[1]},',
+                    )} P',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.greenAccent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 사용한 포인트
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '사용한 포인트',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
+              ),
+              Text(
+                '${_usedPoints.toString().replaceAllMapped(
+                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                      (Match m) => '${m[1]},',
+                    )} P',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.redAccent,
+                ),
+              ),
+            ],
+          ),
+
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

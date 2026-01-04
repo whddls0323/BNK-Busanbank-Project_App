@@ -1,10 +1,14 @@
 // 2025/12/28 - 감정 분석 게임 통합 화면 - 작성자: 진원
+// 2026/01/04 - 눈 깜빡임 감지 개선 및 수동 촬영 버튼 추가 - 작성자: 진원
+// 2026/01/05 - 눈 깜빡임 감지 조건 완화 및 InputImage 포맷 수정 - 작성자: 진원
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import '../../providers/auth_provider.dart';
 import '../../services/emotion_game_service.dart';
 
@@ -108,10 +112,14 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
   }
 
   /// 눈 깜빡임 감지 시작
+  /// 2026/01/05 - 눈 깜빡임 감지 조건 완화 및 디버그 로그 추가 - 작성자: 진원
   void _startBlinkDetection() {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      print('[EmotionGame] ⚠️ 카메라가 초기화되지 않음');
       return;
     }
+
+    print('[EmotionGame] 👁️ 눈 깜빡임 감지 시작...');
 
     _cameraController!.startImageStream((CameraImage image) async {
       if (_isProcessing || _isBlinkDetected) return;
@@ -119,13 +127,25 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
       _isProcessing = true;
 
       try {
-        // InputImage 생성 (간단한 방법 사용)
+        // InputImage 포맷 결정 (Android는 보통 yuv420 또는 nv21)
+        final WriteBuffer allBytes = WriteBuffer();
+        for (final Plane plane in image.planes) {
+          allBytes.putUint8List(plane.bytes);
+        }
+        final bytes = allBytes.done().buffer.asUint8List();
+
+        // null이 아닌 값으로 설정 (기본값: nv21)
+        final InputImageFormat inputImageFormat =
+            image.format.group == ImageFormatGroup.yuv420
+                ? InputImageFormat.yuv420
+                : InputImageFormat.nv21;
+
         final inputImage = InputImage.fromBytes(
-          bytes: image.planes[0].bytes,
+          bytes: bytes,
           metadata: InputImageMetadata(
             size: Size(image.width.toDouble(), image.height.toDouble()),
-            rotation: InputImageRotation.rotation0deg,
-            format: InputImageFormat.nv21,
+            rotation: InputImageRotation.rotation270deg, // 전면 카메라는 270도 회전
+            format: inputImageFormat,
             bytesPerRow: image.planes[0].bytesPerRow,
           ),
         );
@@ -141,12 +161,18 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
           final rightEyeOpen = face.rightEyeOpenProbability;
 
           if (leftEyeOpen != null && rightEyeOpen != null) {
-            bool eyesClosed = leftEyeOpen < 0.3 && rightEyeOpen < 0.3;
-            bool eyesOpened = leftEyeOpen > 0.7 && rightEyeOpen > 0.7;
+            // 디버그: 눈 확률 출력
+            print('[EmotionGame] 👁️ 왼쪽 눈: ${leftEyeOpen.toStringAsFixed(2)}, 오른쪽 눈: ${rightEyeOpen.toStringAsFixed(2)}');
+
+            // 2026/01/05 - 눈 깜빡임 감지 조건 대폭 완화 - 작성자: 진원
+            // 눈 감김 조건: 0.5 이하 (이전 0.4)
+            bool eyesClosed = leftEyeOpen < 0.5 && rightEyeOpen < 0.5;
+            // 눈 뜸 조건: 0.5 이상 (이전 0.6)
+            bool eyesOpened = leftEyeOpen > 0.5 && rightEyeOpen > 0.5;
 
             // 눈 감김 → 눈 뜸: 깜빡임 감지!
             if (_wasEyesClosed && eyesOpened) {
-              print('[EmotionGame] 👁️ 눈 깜빡임 감지!');
+              print('[EmotionGame] ✅ 눈 깜빡임 감지! 촬영 시작');
 
               setState(() {
                 _blinkCount++;
@@ -156,15 +182,22 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
               // 카메라 스트림 중지
               await _cameraController!.stopImageStream();
 
+              // 눈을 완전히 뜬 후 촬영하도록 약간의 딜레이 추가
+              await Future.delayed(const Duration(milliseconds: 300));
+
               // 자동 촬영
               _captureAndAnalyze();
             }
 
             _wasEyesClosed = eyesClosed;
+          } else {
+            print('[EmotionGame] ⚠️ 눈 확률 값을 가져올 수 없음 (null)');
           }
+        } else {
+          print('[EmotionGame] ⚠️ 얼굴이 감지되지 않음');
         }
       } catch (e) {
-        print('[EmotionGame] 얼굴 감지 에러: $e');
+        print('[EmotionGame] ❌ 얼굴 감지 에러: $e');
       } finally {
         _isProcessing = false;
       }
@@ -490,6 +523,60 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
             ),
           ),
 
+        // 2026/01/04 - 수동 촬영 버튼 추가 - 작성자: 진원
+        if (!_isBlinkDetected)
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Column(
+                children: [
+                  const Text(
+                    '또는',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      if (!_isBlinkDetected) {
+                        setState(() => _isBlinkDetected = true);
+
+                        // 카메라 스트림 중지
+                        if (_cameraController!.value.isStreamingImages) {
+                          await _cameraController!.stopImageStream();
+                        }
+
+                        // 수동 촬영
+                        _captureAndAnalyze();
+                      }
+                    },
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text(
+                      '직접 촬영하기',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF9800),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
         // 깜빡임 감지 표시
         if (_blinkCount > 0)
           Positioned(
@@ -503,9 +590,9 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
                   color: Colors.green,
                   borderRadius: BorderRadius.circular(24),
                 ),
-                child: Text(
+                child: const Text(
                   '깜빡임 감지! 촬영 중...',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

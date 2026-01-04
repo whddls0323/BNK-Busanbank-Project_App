@@ -152,7 +152,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 계좌 타입
+              // 상품명
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -162,7 +162,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
                           color: const Color(0xFF2196F3), size: 24),
                       const SizedBox(width: 8),
                       Text(
-                        account.accountType ?? 'TK Bank 계좌',
+                        account.productName ?? account.accountType ?? 'TK Bank 계좌',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
