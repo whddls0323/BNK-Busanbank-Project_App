@@ -1,10 +1,12 @@
 // 2025/12/29 - 계좌 모델 클래스 - 작성자: 진원
+// 2026/01/04 - 상품명 필드 추가 - 작성자: 진원
 class Account {
   final String accountNo;
   final int userId;
   final int balance;
   final String? accountType;
   final String? createdAt;
+  final String? productName; // 상품명
 
   Account({
     required this.accountNo,
@@ -12,6 +14,7 @@ class Account {
     required this.balance,
     this.accountType,
     this.createdAt,
+    this.productName,
   });
 
   factory Account.fromJson(Map<String, dynamic> json) {
@@ -21,6 +24,7 @@ class Account {
       balance: json['balance'] ?? 0,
       accountType: json['accountType'],
       createdAt: json['createdAt'],
+      productName: json['productName'],
     );
   }
 
@@ -31,6 +35,7 @@ class Account {
       'balance': balance,
       'accountType': accountType,
       'createdAt': createdAt,
+      'productName': productName,
     };
   }
 }
