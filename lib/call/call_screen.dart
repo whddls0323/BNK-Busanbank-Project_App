@@ -1,11 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:tkbank/call/agora_call_screen.dart';
+
 import 'package:tkbank/config/api_config.dart';
 
 import 'voice_call_api.dart';
 import 'voice_call_controller.dart';
 import 'voice_websocket_service.dart';
+import 'agora_call_screen.dart';
 
 class CallScreen extends StatefulWidget {
   const CallScreen({super.key});
@@ -18,9 +19,7 @@ class _CallScreenState extends State<CallScreen> {
   late final VoiceCallController controller;
 
   String _log = '';
-
-  final String baseUrl = ApiConfig.baseUrl;
-  final String baseWs  = ApiConfig.wsBase;
+  bool _navigatedToAgora = false; // ✅ 중복 push 방지
 
   @override
   void initState() {
@@ -32,8 +31,7 @@ class _CallScreenState extends State<CallScreen> {
     )
       ..addListener(() => setState(() {}))
       ..onAccepted = _goAgora
-      ..onEnded = () => _append('[VOICE] ended pushed')
-    ;
+      ..onEnded = () => _append('[VOICE] ended pushed');
   }
 
   String _newSessionId() {
@@ -45,13 +43,18 @@ class _CallScreenState extends State<CallScreen> {
     setState(() => _log = '$_log\n$s');
   }
 
-  void _goAgora() {
+  void _goAgora() async {
+    // ✅ ACCEPTED 이벤트가 여러 번 오거나 setState 반복될 수 있으니 1회만 이동
+    if (_navigatedToAgora) return;
+    _navigatedToAgora = true;
+
+    final sid = controller.sessionId;
     final ch = controller.agoraChannel;
-    _append('[VOICE] ACCEPTED -> move Agora (channel=$ch)');
+
+    _append('[VOICE] ACCEPTED -> move Agora (sid=$sid channel=$ch)');
 
     if (!mounted) return;
-
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => AgoraCallScreen(
@@ -61,6 +64,17 @@ class _CallScreenState extends State<CallScreen> {
         ),
       ),
     );
+
+    // ✅ Agora 화면에서 pop 되어 돌아오면, 다음 통화를 위해 상태를 정리
+    // (서버 end는 Agora에서 이미 호출함)
+    _append('[UI] back from Agora');
+    _navigatedToAgora = false;
+
+    // 화면만 초기화하고 싶으면 여기서 세션을 비워도 됩니다.
+    // 단, 서버에서 VOICE_ENDED가 push되는 구조면 controller.state=ended로 바뀌어 있을 가능성이 큼.
+    // 여기서는 UI가 다음 호출을 할 수 있도록 최소한만 초기화:
+    // controller.sessionId를 컨트롤러 내부에서 직접 바꾸지 않는 구조면,
+    // 사용자가 "전화 요청" 다시 누를 수 있게 화면을 idle로 돌리는 로직을 컨트롤러에 추가하는 게 정석.
   }
 
   @override
@@ -74,9 +88,7 @@ class _CallScreenState extends State<CallScreen> {
     final s = controller.state;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('전화 상담 (고객)'),
-      ),
+      appBar: AppBar(title: const Text('전화 상담 (고객)')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -113,7 +125,9 @@ class _CallScreenState extends State<CallScreen> {
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.call_end),
                     label: const Text('종료'),
-                    onPressed: controller.sessionId.isNotEmpty
+                    // ✅ 통화가 ACCEPTED 이후에는 Agora 화면에서 종료만 하게(여기서 중복 종료 방지)
+                    onPressed: (controller.sessionId.isNotEmpty &&
+                        s != UiVoiceCallState.accepted)
                         ? () async {
                       _append('[END] ${controller.sessionId}');
                       await controller.endCall();
@@ -187,7 +201,7 @@ class _StatusCard extends StatelessWidget {
         icon = Icons.support_agent;
         break;
       case UiVoiceCallState.accepted:
-        label = '연결됨';
+        label = '연결됨 (Agora 이동)';
         icon = Icons.check_circle;
         break;
       case UiVoiceCallState.ended:
@@ -223,37 +237,6 @@ class _StatusCard extends StatelessWidget {
           ),
           Text('WS: ${wsOn ? "ON" : "OFF"}'),
         ],
-      ),
-    );
-  }
-}
-
-/// ✅ 실제 Agora Flutter 화면이 있으면 이 Stub 대신 그 화면으로 이동만 바꾸면 됩니다.
-class AgoraStubScreen extends StatelessWidget {
-  final String voiceSessionId;
-  final String agoraChannel;
-  final String consultantId;
-
-  const AgoraStubScreen({
-    super.key,
-    required this.voiceSessionId,
-    required this.agoraChannel,
-    required this.consultantId,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Agora (자동 이동됨)')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          'VOICE_ACCEPTED 수신으로 자동 이동됨\n\n'
-              'voiceSessionId=$voiceSessionId\n'
-              'agoraChannel=$agoraChannel\n'
-              'consultantId=$consultantId\n\n'
-              '※ 여기서 실제 Agora join 화면으로 교체하시면 됩니다.',
-        ),
       ),
     );
   }
