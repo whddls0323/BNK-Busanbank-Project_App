@@ -19,11 +19,11 @@ class NewsResultScreen extends StatelessWidget {
 
   Color _getSentimentColor() {
     if (result.sentiment.label.contains('긍정')) {
-      return AppColors.blue;
+      return Colors.blue.shade900;
     } else if (result.sentiment.label.contains('부정')) {
-      return AppColors.red;
+      return Colors.red.shade900;
     } else {
-      return AppColors.yellowGreen;
+      return Colors.green.shade900;
     }
   }
 
