@@ -22,35 +22,35 @@
         .custom-overlay {
             position: relative;
             bottom: 85px;
-            border-radius: 6px;
+            border-radius: 8px;
             border: 1px solid #ccc;
-            border-bottom: 2px solid #ddd;
-            float: left;
-        }
-        .custom-overlay:nth-of-type(n) {
-            border: 0;
-            box-shadow: 0px 1px 2px #888;
+            box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.3);
+            background: white;
         }
         .custom-overlay a {
             display: block;
             text-decoration: none;
             color: #000;
             text-align: center;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 14px;
             font-weight: bold;
             overflow: hidden;
-            background: #2196F3;
-            background: linear-gradient(to top, #2196F3, #42A5F5);
         }
         .custom-overlay .title {
             display: block;
             text-align: center;
             background: #fff;
-            margin-right: 35px;
-            padding: 10px 15px;
-            font-size: 14px;
+            padding: 12px 20px;
+            font-size: 15px;
             font-weight: bold;
+            border-bottom: 1px solid #eee;
+        }
+        .custom-overlay .info {
+            padding: 10px 15px;
+            font-size: 12px;
+            color: #666;
+            background: #f9f9f9;
         }
         .custom-overlay:after {
             content: '';
@@ -66,13 +66,52 @@
             display: block;
             color: white;
             text-align: center;
-            padding: 8px 15px;
-            font-size: 12px;
-            margin-top: 5px;
+            padding: 10px 15px;
+            font-size: 13px;
+            margin: 10px;
             background: #4CAF50;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
+            font-weight: bold;
+        }
+        .checkin-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .distance-badge {
+            display: inline-block;
+            background: #2196F3;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        .nearby-badge {
+            background: #4CAF50;
+        }
+        .far-badge {
+            background: #FF5722;
+        }
+        #my-location-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #2196F3;
+            border: none;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #my-location-btn:active {
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3);
         }
         #status-message {
             position: fixed;
@@ -81,16 +120,22 @@
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
+            padding: 12px 24px;
+            border-radius: 6px;
             display: none;
             z-index: 1000;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
     <div id="status-message"></div>
+    <button id="my-location-btn" onclick="moveToMyLocation()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+            <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+        </svg>
+    </button>
 
     <!-- 카카오맵 API (작성자: 진원, 2025-11-30) -->
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fcb02db403a511ea44eb59837485cda6&libraries=services"></script>
@@ -99,8 +144,13 @@
         var map;
         var markers = [];
         var overlays = [];
+        var myLocationMarker = null;
+        var myPosition = null;
+        var radiusCircle = null;
 
         // 2025-12-17 - 카카오맵 초기화 - 작성자: 진원
+        // 2026/01/05 - 내 위치 마커 및 반경 원 추가 - 작성자: 진원
+        // 2026/01/05 - Flutter에서 위치 정보 받도록 수정 - 작성자: 진원
         function initMap() {
             var container = document.getElementById('map');
             var options = {
@@ -108,29 +158,68 @@
                 level: 8
             };
             map = new kakao.maps.Map(container, options);
+        }
 
-            // 현재 위치 표시
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    var lat = position.coords.latitude;
-                    var lon = position.coords.longitude;
-                    var locPosition = new kakao.maps.LatLng(lat, lon);
+        // 2026/01/05 - Flutter에서 위치 정보를 받아서 업데이트 - 작성자: 진원
+        function updateMyLocation(lat, lon) {
+            console.log('Flutter에서 위치 수신:', lat, lon);
+            myPosition = new kakao.maps.LatLng(lat, lon);
 
-                    // 현재 위치 마커
-                    var marker = new kakao.maps.Marker({
-                        map: map,
-                        position: locPosition
-                    });
+            // 내 위치 마커 (파란색 별)
+            var imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png';
+            var imageSize = new kakao.maps.Size(24, 35);
+            var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
 
-                    // 현재 위치로 지도 중심 이동
-                    map.setCenter(locPosition);
-                }, function(error) {
-                    console.error('위치 정보를 가져올 수 없습니다:', error);
-                });
+            // 기존 마커가 있으면 제거
+            if (myLocationMarker) {
+                myLocationMarker.setMap(null);
+            }
+
+            myLocationMarker = new kakao.maps.Marker({
+                map: map,
+                position: myPosition,
+                image: markerImage,
+                title: '내 위치'
+            });
+
+            // 기존 반경 원이 있으면 제거
+            if (radiusCircle) {
+                radiusCircle.setMap(null);
+            }
+
+            // 1km 반경 원 표시
+            radiusCircle = new kakao.maps.Circle({
+                center: myPosition,
+                radius: 1000, // 1km
+                strokeWeight: 2,
+                strokeColor: '#2196F3',
+                strokeOpacity: 0.6,
+                strokeStyle: 'solid',
+                fillColor: '#2196F3',
+                fillOpacity: 0.1
+            });
+            radiusCircle.setMap(map);
+
+            // 현재 위치로 지도 중심 이동
+            map.setCenter(myPosition);
+            map.setLevel(6);
+
+            showMessage('위치 정보를 가져왔습니다', true);
+        }
+
+        // 2026/01/05 - 내 위치로 이동 - 작성자: 진원
+        function moveToMyLocation() {
+            if (myPosition) {
+                map.setCenter(myPosition);
+                map.setLevel(6);
+                showMessage('내 위치로 이동했습니다', true);
+            } else {
+                showMessage('위치 정보를 가져오는 중입니다. 잠시 후 다시 시도해주세요.', false);
             }
         }
 
         // 2025-12-17 - Flutter에서 영업점 데이터 받아서 마커 표시 - 작성자: 진원
+        // 2026/01/05 - 거리에 따른 마커 색상 구분 - 작성자: 진원
         function loadBranchesFromFlutter(branches) {
             console.log('영업점 데이터 수신:', branches.length + '개');
 
@@ -140,19 +229,37 @@
             branches.forEach(function(branch) {
                 var position = new kakao.maps.LatLng(branch.latitude, branch.longitude);
 
+                // 거리 계산 (미터)
+                var distance = 0;
+                var isNearby = false;
+                if (myPosition) {
+                    var line = new kakao.maps.Polyline({
+                        path: [myPosition, position]
+                    });
+                    distance = line.getLength(); // 미터 단위
+                    isNearby = distance <= 1000; // 1km 이내
+                }
+
+                // 마커 이미지 선택 (초록색: 가능, 빨간색: 멀음)
+                var imageSrc = isNearby
+                    ? 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_green.png'
+                    : 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png';
+                var imageSize = new kakao.maps.Size(27, 40);
+                var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+
                 // 마커 생성
                 var marker = new kakao.maps.Marker({
                     map: map,
                     position: position,
+                    image: markerImage,
                     title: branch.branchName
                 });
 
                 markers.push(marker);
 
                 // 커스텀 오버레이 생성
-                var content = createOverlayContent(branch);
+                var content = createOverlayContent(branch, distance, isNearby);
                 var customOverlay = new kakao.maps.CustomOverlay({
-                    map: map,
                     position: position,
                     content: content,
                     yAnchor: 1,
@@ -163,39 +270,42 @@
 
                 // 마커 클릭 이벤트
                 kakao.maps.event.addListener(marker, 'click', function() {
-                    showOverlay(customOverlay);
+                    // 모든 오버레이 숨기기
+                    overlays.forEach(function(o) {
+                        o.setMap(null);
+                    });
+                    // 선택된 오버레이만 표시
+                    customOverlay.setMap(map);
                 });
             });
-
-            // 첫 번째 영업점으로 지도 중심 이동 (데이터가 있을 경우)
-            if (branches.length > 0) {
-                var firstBranch = branches[0];
-                var center = new kakao.maps.LatLng(firstBranch.latitude, firstBranch.longitude);
-                map.setCenter(center);
-            }
         }
 
         // 2025-12-17 - 커스텀 오버레이 HTML 생성 - 작성자: 진원
-        function createOverlayContent(branch) {
+        // 2026/01/05 - 거리 정보 및 상태 배지 추가 - 작성자: 진원
+        function createOverlayContent(branch, distance, isNearby) {
+            var distanceKm = (distance / 1000).toFixed(1);
+            var badgeClass = isNearby ? 'nearby-badge' : 'far-badge';
+            var badgeText = isNearby ? '✓ 체크인 가능' : '거리 멀음';
+
             var content = document.createElement('div');
             content.className = 'custom-overlay';
             content.innerHTML = `
                 <a href="#">
-                    <span class="title">${branch.branchName}</span>
-                    <button class="checkin-btn" onclick="requestCheckin(${branch.branchId}, '${branch.branchName}', ${branch.latitude}, ${branch.longitude}); return false;">
-                        체크인
+                    <div class="title">
+                        ${branch.branchName}
+                        <span class="distance-badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                    <div class="info">
+                        📍 ${distanceKm}km · ${branch.branchAddr || ''}
+                    </div>
+                    <button class="checkin-btn"
+                            ${!isNearby ? 'disabled' : ''}
+                            onclick="requestCheckin(${branch.branchId}, '${branch.branchName}', ${branch.latitude}, ${branch.longitude}, ${isNearby}); return false;">
+                        ${isNearby ? '체크인 하기' : '반경 1km 밖'}
                     </button>
                 </a>
             `;
             return content;
-        }
-
-        // 오버레이 표시
-        function showOverlay(overlay) {
-            overlays.forEach(function(o) {
-                o.setMap(null);
-            });
-            overlay.setMap(map);
         }
 
         // 마커와 오버레이 제거
@@ -211,7 +321,12 @@
         }
 
         // 2025-12-17 - 체크인 요청 (Flutter로 전송) - 작성자: 진원
-        function requestCheckin(branchId, branchName, latitude, longitude) {
+        function requestCheckin(branchId, branchName, latitude, longitude, isNearby) {
+            if (!isNearby) {
+                showMessage('영업점 근처에서만 체크인할 수 있습니다 (반경 1km 이내)', false);
+                return;
+            }
+
             var data = {
                 branchId: branchId,
                 branchName: branchName,
@@ -231,6 +346,10 @@
         function onCheckinResult(success, message, points) {
             if (success) {
                 showMessage(message + ' (+' + points + 'P)', true);
+                // 모든 오버레이 숨기기
+                overlays.forEach(function(o) {
+                    o.setMap(null);
+                });
             } else {
                 showMessage(message, false);
             }

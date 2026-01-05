@@ -133,7 +133,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             MaterialPageRoute(builder: (_) => const VisionTestScreen()));
         break;
     }
-
   }
 
   final TextEditingController _controller = TextEditingController();

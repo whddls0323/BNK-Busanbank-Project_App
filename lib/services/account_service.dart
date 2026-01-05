@@ -172,4 +172,34 @@ class AccountService {
       throw Exception('거래 상세 조회 중 오류 발생: $e');
     }
   }
+
+  // 2026/01/04 - 계좌 해지 - 작성자: 진원
+  Future<Map<String, dynamic>> closeAccount({
+    required int userId,
+    required String accountNo,
+    String? transferToAccountNo, // 잔액 이동할 계좌 (선택사항)
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/api/transaction/close-account'),
+        headers: headers,
+        body: jsonEncode({
+          'userId': userId,
+          'accountNo': accountNo,
+          if (transferToAccountNo != null)
+            'transferToAccountNo': transferToAccountNo,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['error'] ?? '계좌 해지 실패');
+      }
+    } catch (e) {
+      throw Exception('계좌 해지 중 오류 발생: $e');
+    }
+  }
 }

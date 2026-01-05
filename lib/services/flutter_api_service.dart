@@ -131,18 +131,13 @@ class FlutterApiService {
   }
 
   /// ✅ 포인트 조회 (별칭, Map 반환)
+  /// 2026/01/04 - 전체 포인트 정보 반환하도록 수정 - 작성자: 진원
   Future<Map<String, dynamic>> getUserPoints(int userNo) async {
-    final points = await getPoints(userNo);
-    return {'totalPoints': points};
-  }
+    final data = await _get('/flutter/points/user/$userNo', needsAuth: true);
 
-  // /// ✅ 포인트 조회 (별칭, Map 반환)
-  // Future<Map<String, dynamic>> getUserPoints(int userNo) async {
-  //   final data = await _get('/flutter/points/user/$userNo', needsAuth: true);
-  //
-  //   // ✅ Backend 응답을 그대로 반환
-  //   return data;  // { "totalPoints": 2440, "availablePoints": 2440, ... }
-  // }
+    // ✅ Backend 응답을 그대로 반환
+    return data;  // { "totalPoints": 2440, "availablePoints": 2440, "usedPoints": 0 }
+  }
 
   /// ✅ 게스트 가입 (별칭)
   Future<void> joinAsGuest(Map<String, dynamic> request) async {
