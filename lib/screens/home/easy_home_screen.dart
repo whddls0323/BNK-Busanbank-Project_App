@@ -17,6 +17,8 @@ import 'package:tkbank/screens/member/security_center_screen.dart';
 import 'package:tkbank/screens/my_page/my_page_screen.dart';
 import 'package:tkbank/screens/camera/vision_test_screen.dart';
 import 'ar_home_screen.dart';
+import 'package:tkbank/services/account_service.dart';
+import 'package:tkbank/models/account.dart';
 
 class EasyHomeScreen extends StatefulWidget {
   final String baseUrl;
@@ -30,11 +32,64 @@ class EasyHomeScreen extends StatefulWidget {
 class _EasyHomeScreenState extends State<EasyHomeScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _showTopButton = false;
+  List<Account> _accounts = [];
+  int _totalBalance = 0;
+  bool _loadingBalance = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadBalanceIfLoggedIn();
+    });
+  }
+
+  Future<void> _loadBalanceIfLoggedIn() async {
+    final authProvider = context.read<AuthProvider>();
+
+    // userNo가 있을 때만 로드
+    if (authProvider.isLoggedIn && authProvider.userNo != null) {
+      await _loadBalance();
+    }
+  }
+
+  Future<void> _loadBalance() async {
+    final authProvider = context.read<AuthProvider>();
+
+    // userNo가 null이면 리턴
+    if (authProvider.userNo == null) return;
+
+    setState(() => _loadingBalance = true);
+    try {
+      final accountService = AccountService();
+
+      // userId가 아니라 userNo를 넘겨야 해!
+      final accounts = await accountService.getUserAccounts(authProvider.userNo!);
+
+      // 모든 계좌의 잔액 합산
+      int total = 0;
+      for (var account in accounts) {
+        total += account.balance;
+      }
+
+      setState(() {
+        _accounts = accounts;
+        _totalBalance = total;
+        _loadingBalance = false;
+      });
+
+      print('📊 총 잔액: $_totalBalance원 (계좌 ${accounts.length}개)');
+    } catch (e) {
+      print('❌ 잔액 조회 실패: $e');
+      setState(() => _loadingBalance = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('잔액 조회 실패: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -79,6 +134,9 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
     final authProvider = context.watch<AuthProvider>();
     final isLoggedIn = authProvider.isLoggedIn;
 
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: AppColors.gray1,
       body: SafeArea(
@@ -91,6 +149,12 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
               const SizedBox(height: 20),
               _buildGreeting(context, authProvider, isLoggedIn),
               const SizedBox(height: 30),
+
+              if (isLoggedIn) ...[
+                _buildBalanceContainer(context),
+                const SizedBox(height: 30),
+              ],
+
               EasyMenuBar(
                 menuType: MainMenuType.easy,
                 baseUrl: widget.baseUrl,
@@ -104,9 +168,9 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
       ),
       floatingActionButton: _showTopButton
           ? Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
+        width: screenWidth * 0.14,
+        height: screenWidth * 0.14,
+        decoration: const BoxDecoration(
           color: AppColors.primary,
           shape: BoxShape.circle,
         ),
@@ -123,15 +187,101 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isLoggedIn) {
+  // 총 잔액 컨테이너
+  Widget _buildBalanceContainer(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(20, 10, 10, 20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.primary, AppColors.pink],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withOpacity(0.6),
+              blurRadius: 6,
+              offset: const Offset(0, 0),
+            ),
+          ],
+        ),
+        child: _loadingBalance
+            ? const Center(
+          child: CircularProgressIndicator(color: AppColors.white),
+        )
+            : Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '총 잔액',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.white,
+                  ),
+                ),
+                IconButton(
+                  onPressed: _loadBalance,
+                  icon: const Icon(
+                    Icons.refresh,
+                    color: AppColors.white,
+                    size: 24,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${_formatBalance(_totalBalance)}원',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: AppColors.white,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '전체 ${_accounts.length}개 계좌',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: AppColors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatBalance(int balance) {
+    return balance.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, bool isLoggedIn) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Image.asset(
             'assets/images/TKBank_logo.png',
-            height: 25,
+            height: screenHeight * 0.03,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => const Text(
               'TK 딸깍은행',
@@ -183,7 +333,6 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
     );
   }
 
-  // 검색 모달 - 새로운 위젯 사용
   void _showSearchModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -194,6 +343,8 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
   }
 
   Widget _buildGreeting(BuildContext context, AuthProvider authProvider, bool isLoggedIn) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     String greeting1;
     String greeting2;
 
@@ -236,7 +387,6 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
               ],
             ),
           ),
-          const SizedBox(width: 16),
           GestureDetector(
             onTap: () {
               Navigator.pushReplacement(
@@ -247,27 +397,23 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
               );
             },
             child: Container(
-              width: 120,
-              height: 120,
+              width: screenWidth * 0.35,
+              height: screenWidth * 0.35,
               decoration: BoxDecoration(
-                color: AppColors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 0),
-                  ),
-                ],
+                color: AppColors.gray1,
+                shape: BoxShape.rectangle,
               ),
               child: ClipOval(
-                child: Image.asset(
-                  'assets/images/penguinman.png',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
-                    Icons.account_circle,
-                    size: 100,
-                    color: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Image.asset(
+                    'assets/images/penguinman.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.account_circle,
+                      size: 100,
+                      color: AppColors.white,
+                    ),
                   ),
                 ),
               ),
@@ -376,6 +522,8 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
   }
 
   Widget _menuListItem(BuildContext context, String label, IconData icon, VoidCallback onTap) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -393,7 +541,10 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+          padding: EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: screenHeight * 0.027,
+          ),
           child: Row(
             children: [
               Container(
@@ -425,7 +576,7 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
   }
 }
 
-// 검색 모달 위젯
+// 검색 모달 위젯 (동일)
 class _SearchModalContent extends StatefulWidget {
   final String baseUrl;
 
@@ -569,8 +720,10 @@ class _SearchModalContentState extends State<_SearchModalContent> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
+      height: screenHeight * 0.75,
       decoration: const BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -593,7 +746,7 @@ class _SearchModalContentState extends State<_SearchModalContent> {
               autofocus: true,
               decoration: InputDecoration(
                 hintText: '필요한 메뉴를 검색하세요',
-                hintStyle: TextStyle(color: AppColors.gray4),
+                hintStyle: const TextStyle(color: AppColors.gray4),
                 prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -652,6 +805,8 @@ class _SearchModalContentState extends State<_SearchModalContent> {
   }
 
   Widget _buildSearchResults() {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     if (_searchResults.isEmpty) {
       return Center(
         child: Column(
@@ -690,7 +845,10 @@ class _SearchModalContentState extends State<_SearchModalContent> {
             onTap: () => _navigateToMenu(menu),
             borderRadius: BorderRadius.circular(10),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+              padding: EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: screenHeight * 0.027,
+              ),
               child: Row(
                 children: [
                   Container(
@@ -748,7 +906,6 @@ class _SearchModalContentState extends State<_SearchModalContent> {
   }
 }
 
-// 검색 메뉴 아이템 클래스 (파일 맨 아래)
 class _SearchMenuItem {
   final String label;
   final IconData icon;

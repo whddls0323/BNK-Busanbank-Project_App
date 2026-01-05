@@ -1,9 +1,12 @@
 // 2025/12/29 - 계좌 이체 화면 - 작성자: 진원
+// 2026/01/04 - 이체한도 적용 및 내계좌 선택 기능 추가 - 작성자: 진원
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/account_service.dart';
+import '../../services/transfer_limit_service.dart';
+import '../../models/account.dart';
 import 'package:intl/intl.dart';
 
 class TransferScreen extends StatefulWidget {
@@ -17,6 +20,7 @@ class TransferScreen extends StatefulWidget {
 
 class _TransferScreenState extends State<TransferScreen> {
   final AccountService _accountService = AccountService();
+  final TransferLimitService _transferLimitService = TransferLimitService();
   final NumberFormat _currencyFormat = NumberFormat('#,###');
   final _formKey = GlobalKey<FormState>();
 
@@ -25,6 +29,8 @@ class _TransferScreenState extends State<TransferScreen> {
   final TextEditingController _descriptionController = TextEditingController();
 
   int? _currentBalance;
+  int? _onceLimit; // 1회 이체한도
+  int? _dailyLimit; // 1일 이체한도
   bool _isLoading = false;
   bool _isLoadingBalance = true;
 
@@ -32,6 +38,7 @@ class _TransferScreenState extends State<TransferScreen> {
   void initState() {
     super.initState();
     _loadBalance();
+    _loadTransferLimit();
   }
 
   @override
@@ -60,6 +67,26 @@ class _TransferScreenState extends State<TransferScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('잔액 조회 실패: $e')),
         );
+      }
+    }
+  }
+
+  Future<void> _loadTransferLimit() async {
+    try {
+      final result = await _transferLimitService.getTransferLimit();
+      if (mounted) {
+        setState(() {
+          _onceLimit = result['onceLimit'];
+          _dailyLimit = result['dailyLimit'];
+        });
+      }
+    } catch (e) {
+      // 이체한도 조회 실패시 기본값 사용 (제한 없음)
+      if (mounted) {
+        setState(() {
+          _onceLimit = null;
+          _dailyLimit = null;
+        });
       }
     }
   }
@@ -94,6 +121,17 @@ class _TransferScreenState extends State<TransferScreen> {
     if (_currentBalance != null && amount > _currentBalance!) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('잔액이 부족합니다')),
+      );
+      return;
+    }
+
+    // 이체한도 확인
+    if (_onceLimit != null && amount > _onceLimit!) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('1회 이체한도(${_currencyFormat.format(_onceLimit)}원)를 초과했습니다'),
+          duration: const Duration(seconds: 3),
+        ),
       );
       return;
     }
@@ -220,6 +258,78 @@ class _TransferScreenState extends State<TransferScreen> {
     }
   }
 
+  // 내계좌 목록 표시
+  Future<void> _showMyAccountList() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userId = authProvider.userNo;
+
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인이 필요합니다')),
+      );
+      return;
+    }
+
+    try {
+      final accounts = await _accountService.getUserAccounts(userId);
+
+      if (!mounted) return;
+
+      // 현재 출금 계좌 제외
+      final filteredAccounts = accounts
+          .where((account) => account.accountNo != widget.fromAccountNo)
+          .toList();
+
+      if (filteredAccounts.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이체 가능한 다른 계좌가 없습니다')),
+        );
+        return;
+      }
+
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('내 계좌 선택'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: filteredAccounts.length,
+              itemBuilder: (context, index) {
+                final account = filteredAccounts[index];
+                return ListTile(
+                  leading: const Icon(Icons.account_balance_wallet,
+                      color: Color(0xFF2196F3)),
+                  title: Text(account.accountNo),
+                  subtitle: Text(
+                    account.productName ?? account.accountType ?? 'TK Bank 계좌',
+                  ),
+                  onTap: () {
+                    _toAccountController.text = account.accountNo;
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('취소'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('계좌 목록 조회 실패: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -244,20 +354,45 @@ class _TransferScreenState extends State<TransferScreen> {
                         const SizedBox(height: 24),
 
                         // 받는 계좌번호 입력
-                        _buildTextField(
-                          controller: _toAccountController,
-                          label: '받는 계좌번호',
-                          hint: '계좌번호를 입력하세요',
-                          keyboardType: TextInputType.text,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return '계좌번호를 입력해주세요';
-                            }
-                            if (value == widget.fromAccountNo) {
-                              return '같은 계좌로는 이체할 수 없습니다';
-                            }
-                            return null;
-                          },
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _toAccountController,
+                                    label: '받는 계좌번호',
+                                    hint: '계좌번호를 입력하세요',
+                                    keyboardType: TextInputType.text,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return '계좌번호를 입력해주세요';
+                                      }
+                                      if (value == widget.fromAccountNo) {
+                                        return '같은 계좌로는 이체할 수 없습니다';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 24),
+                                  child: ElevatedButton(
+                                    onPressed: _showMyAccountList,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF2196F3),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 12),
+                                    ),
+                                    child: const Text('내계좌'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
 
@@ -427,6 +562,14 @@ class _TransferScreenState extends State<TransferScreen> {
   }
 
   Widget _buildInfoBox() {
+    String limitInfo = '';
+    if (_onceLimit != null) {
+      limitInfo = '• 1회 이체한도: ${_currencyFormat.format(_onceLimit)}원\n';
+    }
+    if (_dailyLimit != null) {
+      limitInfo += '• 1일 이체한도: ${_currencyFormat.format(_dailyLimit)}원\n';
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -451,6 +594,7 @@ class _TransferScreenState extends State<TransferScreen> {
           ),
           const SizedBox(height: 8),
           Text(
+            '$limitInfo'
             '• 이체 금액은 본인 계좌의 잔액 내에서만 가능합니다.\n'
             '• 잘못된 계좌로 이체한 경우 고객센터로 문의하세요.\n'
             '• 이체는 즉시 처리되며, 취소가 불가능합니다.',

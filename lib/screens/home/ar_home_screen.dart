@@ -23,6 +23,15 @@ import 'package:tkbank/screens/my_page/my_page_screen.dart';
 import 'package:tkbank/screens/camera/vision_test_screen.dart';
 import 'easy_home_screen.dart';
 
+// 모션 상태 enum
+enum MascotMotion {
+  intro,
+  idle,
+  nod,
+  wave,
+  typing,
+}
+
 class ArHomeScreen extends StatefulWidget {
   final String baseUrl;
 
@@ -33,12 +42,16 @@ class ArHomeScreen extends StatefulWidget {
 }
 
 class _ArHomeScreenState extends State<ArHomeScreen> {
-  static const double _messageInputHeight = 64.0;
-
   int _step = 0;
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
-  bool _showIntro = true;
+
+  // 모션 관리
+  MascotMotion _currentMotion = MascotMotion.intro;
+  final Map<MascotMotion, String> _motionFiles = {
+    MascotMotion.intro: 'assets/models/A_intro.glb',
+    MascotMotion.idle: 'assets/models/penguinman.glb',
+  };
 
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
@@ -53,16 +66,27 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // 화면 진입 시마다 Intro 강제 재생
-    _showIntro = true;
+    _playMotion(MascotMotion.intro);
 
     Future.delayed(const Duration(milliseconds: 2100), () {
       if (mounted) {
-        setState(() {
-          _showIntro = false;
-        });
+        _playMotion(MascotMotion.idle);
       }
     });
+  }
+
+  void _playMotion(MascotMotion motion, {bool returnToIdle = false}) {
+    setState(() {
+      _currentMotion = motion;
+    });
+
+    if (returnToIdle && motion != MascotMotion.idle) {
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) {
+          _playMotion(MascotMotion.idle);
+        }
+      });
+    }
   }
 
   Future<void> _initializeCamera() async {
@@ -119,6 +143,9 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final isLoggedIn = authProvider.isLoggedIn;
+    // 👇 화면 크기
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -148,9 +175,9 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
                   );
                 },
                 icon: const Icon(
-                  Icons.arrow_back,
+                  Icons.chevron_left,
                   color: AppColors.white,
-                  size: 24,
+                  size: 34,
                 ),
               ),
             ),
@@ -158,7 +185,7 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
 
           // 하단 슬라이드 메뉴
           Positioned(
-            bottom: _messageInputHeight + MediaQuery.of(context).padding.bottom,
+            bottom: screenHeight * 0.05 + MediaQuery.of(context).padding.bottom,
             left: 0,
             right: 0,
             child: HomeMenuBar(
@@ -200,6 +227,7 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
 
   Widget _buildMascot() {
     final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Positioned(
       top: screenHeight * 0.28,
@@ -207,19 +235,30 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
       right: 0,
       child: Center(
         child: SizedBox(
-          width: 350,
-          height: 450,
-          child: ModelViewer(
-            key: ValueKey(_showIntro),
-            src: _showIntro
-                ? 'assets/models/A_intro.glb'
-                : 'assets/models/penguinman.glb',
-            alt: "딸깍은행 마스코트",
+          width: screenWidth * 0.85,
+          height: screenHeight * 0.5,
+          child: Stack(
+            children: MascotMotion.values.map((motion) {
+              if (!_motionFiles.containsKey(motion)) return const SizedBox.shrink();
 
-            autoPlay: true,
-            autoRotate: false,
-            cameraControls: false,
-            backgroundColor: Colors.transparent,
+              final isActive = _currentMotion == motion;
+              return AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: isActive ? 1.0 : 0.0,
+                child: IgnorePointer(
+                  ignoring: !isActive,
+                  child: ModelViewer(
+                    key: ValueKey(motion),
+                    src: _motionFiles[motion]!,
+                    alt: "딸깍은행 마스코트",
+                    autoPlay: true,
+                    autoRotate: false,
+                    cameraControls: false,
+                    backgroundColor: Colors.transparent,
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ),
       ),
@@ -227,19 +266,18 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
   }
 
   Widget _buildGreeting() {
-    final screenHeight = MediaQuery
-        .of(context)
-        .size
-        .height;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Positioned(
       top: screenHeight * 0.10,
       left: 24,
       right: 24,
       child: GestureDetector(
-        onTap: () => setState(() => _step = 1),
+        onTap: () {
+          setState(() => _step = 1);
+        },
         child: SizedBox(
-          height: 180,
+          height: screenHeight * 0.2,
           child: Stack(
             children: [
               Image.asset(
@@ -284,10 +322,7 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
   }
 
   Widget _buildQuestion() {
-    final screenHeight = MediaQuery
-        .of(context)
-        .size
-        .height;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Positioned(
       top: screenHeight * 0.1,
@@ -298,7 +333,7 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
           _focusNode.requestFocus();
         },
         child: SizedBox(
-          height: 180,
+          height: screenHeight * 0.2,
           child: Stack(
             children: [
               Image.asset(
@@ -308,11 +343,10 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
               ),
               Positioned.fill(
                 child: Padding(
-                  // 꼬리 때문에 아래 여백을 더 주고, 위 여백을 줄임
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 34),
-                  child: Align(
-                    alignment: const Alignment(0, 0),
-                    child: const Text(
+                  child: const Align(
+                    alignment: Alignment(0, 0),
+                    child: Text(
                       '무엇을 도와드릴까요?',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -341,14 +375,11 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
           left: 20,
           right: 20,
           top: 15,
-          bottom: MediaQuery
-              .of(context)
-              .padding
-              .bottom + 8,
+          bottom: MediaQuery.of(context).padding.bottom + 8,
         ),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppColors.white,
-          borderRadius: const BorderRadius.vertical(
+          borderRadius: BorderRadius.vertical(
             top: Radius.circular(20),
           ),
         ),
@@ -360,7 +391,7 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
                 focusNode: _focusNode,
                 decoration: InputDecoration(
                   hintText: '딸깍이에게 무엇이든 물어보세요.',
-                  hintStyle: TextStyle(color: AppColors.gray4, fontSize: 16),
+                  hintStyle: const TextStyle(color: AppColors.gray4, fontSize: 16),
                   filled: true,
                   fillColor: AppColors.gray2,
                   border: OutlineInputBorder(
@@ -372,6 +403,9 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
                     vertical: 14,
                   ),
                 ),
+                onChanged: (text) {
+                  // 나중에 typing 모션 추가
+                },
                 onSubmitted: (value) {
                   _handleSendMessage(value);
                 },
@@ -397,9 +431,7 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
   }
 
   void _handleSendMessage(String message) {
-    if (message
-        .trim()
-        .isEmpty) return;
+    if (message.trim().isEmpty) return;
 
     print('AI 챗봇에게 메시지 전송: $message');
 
@@ -414,175 +446,169 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
     _focusNode.unfocus();
   }
 
-  // 더보기 모달
   void _showAllMenuModal() {
     final authProvider = context.read<AuthProvider>();
     final isLoggedIn = authProvider.isLoggedIn;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) =>
-          Container(
-            height: MediaQuery
-                .of(context)
-                .size
-                .height * 0.85,
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      builder: (context) => Container(
+        height: screenHeight * 0.85,
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // 핸들
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.gray3,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            child: Column(
-              children: [
-                // 핸들
-                Container(
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.gray3,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+
+            // 타이틀
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Text(
+                '전체 메뉴',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
                 ),
-
-                // 타이틀
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Text(
-                    '전체 메뉴',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-
-                // 메뉴 리스트
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        _tossMenuButton('금융상품 보기', Icons.shopping_bag, () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  ProductMainScreen(baseUrl: widget.baseUrl),
-                            ),
-                          );
-                        }),
-                        _tossMenuButton('금리 계산기', Icons.calculate, () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const InterestCalculatorScreen(),
-                            ),
-                          );
-                        }),
-                        _tossMenuButton('금융게임', Icons.games, () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  GameMenuScreen(baseUrl: widget.baseUrl),
-                            ),
-                          );
-                        }),
-                        _tossMenuButton('AI 뉴스', Icons.auto_awesome, () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  NewsAnalysisMainScreen(
-                                      baseUrl: widget.baseUrl),
-                            ),
-                          );
-                        }),
-                        _tossMenuButton('포인트 이력', Icons.stars, () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  PointHistoryScreen(baseUrl: widget.baseUrl),
-                            ),
-                          );
-                        }),
-                        _tossMenuButton('고객센터', Icons.support_agent, () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CustomerSupportScreen(),
-                            ),
-                          );
-                        }),
-
-                        if (isLoggedIn) ...[
-                          _tossMenuButton('금열매 이벤트', Icons.eco, () {
-                            Navigator.pop(context);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const SeedEventScreen(),
-                              ),
-                            );
-                          }),
-                          _tossMenuButton('인증센터', Icons.lock_outline, () {
-                            Navigator.pop(context);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const SecurityCenterScreen(),
-                              ),
-                            );
-                          }),
-                          _tossMenuButton('마이페이지', Icons.person, () {
-                            Navigator.pop(context);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MyPageScreen(),
-                              ),
-                            );
-                          }),
-                        ],
-
-                        _tossMenuButton('로고 인증 이벤트', Icons.camera_alt, () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const VisionTestScreen(),
-                            ),
-                          );
-                        }),
-
-                        const SizedBox(height: 20),
-
-                        // 로그인/로그아웃
-                        if (!isLoggedIn)
-                          _tossLoginButton()
-                        else
-                          _tossLogoutButton(),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+
+            // 메뉴 리스트
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _tossMenuButton('금융상품 보기', Icons.shopping_bag, () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProductMainScreen(baseUrl: widget.baseUrl),
+                        ),
+                      );
+                    }),
+                    _tossMenuButton('금리 계산기', Icons.calculate, () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const InterestCalculatorScreen(),
+                        ),
+                      );
+                    }),
+                    _tossMenuButton('금융게임', Icons.games, () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => GameMenuScreen(baseUrl: widget.baseUrl),
+                        ),
+                      );
+                    }),
+                    _tossMenuButton('AI 뉴스', Icons.auto_awesome, () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => NewsAnalysisMainScreen(baseUrl: widget.baseUrl),
+                        ),
+                      );
+                    }),
+                    _tossMenuButton('포인트 이력', Icons.stars, () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PointHistoryScreen(baseUrl: widget.baseUrl),
+                        ),
+                      );
+                    }),
+                    _tossMenuButton('고객센터', Icons.support_agent, () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CustomerSupportScreen(),
+                        ),
+                      );
+                    }),
+
+                    if (isLoggedIn) ...[
+                      _tossMenuButton('금열매 이벤트', Icons.eco, () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SeedEventScreen(),
+                          ),
+                        );
+                      }),
+                      _tossMenuButton('인증센터', Icons.lock_outline, () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SecurityCenterScreen(),
+                          ),
+                        );
+                      }),
+                      _tossMenuButton('마이페이지', Icons.person, () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MyPageScreen(),
+                          ),
+                        );
+                      }),
+                    ],
+
+                    _tossMenuButton('로고 인증 이벤트', Icons.camera_alt, () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const VisionTestScreen(),
+                        ),
+                      );
+                    }),
+
+                    const SizedBox(height: 20),
+
+                    if (!isLoggedIn)
+                      _tossLoginButton()
+                    else
+                      _tossLogoutButton(),
+
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _tossMenuButton(String label, IconData icon, VoidCallback onPressed) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -600,7 +626,10 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
         onTap: onPressed,
         borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+          padding: EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: screenHeight * 0.027,
+          ),
           child: Row(
             children: [
               Container(
@@ -686,62 +715,55 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () async {
-
           final confirm = await showDialog<bool>(
             context: context,
-            builder: (dialogContext) =>
-                AlertDialog(
-
-                  // 25.12.30 스타일 수정 - 수빈
-                  backgroundColor: AppColors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-
-                  title: const Text(
-                    '로그아웃',
+            builder: (dialogContext) => AlertDialog(
+              backgroundColor: AppColors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              title: const Text(
+                '로그아웃',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.black,
+                ),
+              ),
+              content: const Text(
+                '로그아웃 하시겠습니까?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.gray5,
+                ),
+              ),
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text(
+                    '취소',
                     style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.red,
                     ),
                   ),
-
-                  content: const Text(
-                    '로그아웃 하시겠습니까?',
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text(
+                    '로그아웃',
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.gray5,
                     ),
                   ),
-
-                  actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(dialogContext, false),
-                      child: const Text(
-                        '취소',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.red,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(dialogContext, true),
-                      child: const Text(
-                        '로그아웃',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.gray5,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
+              ],
+            ),
           );
 
           if (confirm == true && mounted) {
@@ -780,7 +802,6 @@ class _ArHomeScreenState extends State<ArHomeScreen> {
   }
 }
 
-// 메뉴 아이템 클래스 (HomeScreen 밖에 추가)
 class _MenuItem {
   final String label;
   final IconData icon;
