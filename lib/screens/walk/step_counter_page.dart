@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:tkbank/providers/auth_provider.dart';
@@ -15,7 +16,8 @@ class StepCounterPage extends StatefulWidget {
 
 class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProviderStateMixin {
   late Stream<StepCount> _stepCountStream;
-  String _steps = '0';
+  int _todaySteps = 0;
+  int _baseStepCount = 0; // 오늘 자정 기준 걸음 수
   String _status = '대기 중';
   bool _permissionDenied = false;
   bool _isLoading = false;
@@ -28,9 +30,8 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _requestPermission();
+    _initializeStepCounter();
 
-    // 애니메이션 설정
     _animationController = AnimationController(
       duration: Duration(milliseconds: 1500),
       vsync: this,
@@ -39,6 +40,44 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
     _scaleAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
+  }
+
+  Future<void> _initializeStepCounter() async {
+    await _loadTodayBaseSteps();
+    await _requestPermission();
+  }
+
+  // 오늘 자정 기준 걸음 수 불러오기
+  Future<void> _loadTodayBaseSteps() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final savedDate = prefs.getString('step_date');
+
+    if (savedDate == today) {
+      // 같은 날이면 저장된 기준값 사용
+      _baseStepCount = prefs.getInt('base_step_count') ?? 0;
+    } else {
+      // 날짜가 바뀌었으면 현재 걸음 수를 새로운 기준값으로 저장
+      _baseStepCount = 0; // 초기화 (실제 값은 pedometer에서 받아온 후 저장)
+      await prefs.setString('step_date', today);
+    }
+  }
+
+  // 오늘 기준 걸음 수 저장
+  Future<void> _saveTodayBaseSteps(int totalSteps) async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final savedDate = prefs.getString('step_date');
+
+    if (savedDate != today) {
+      // 날짜가 바뀌었으면 현재 걸음 수를 기준값으로 저장
+      await prefs.setString('step_date', today);
+      await prefs.setInt('base_step_count', totalSteps);
+      setState(() {
+        _baseStepCount = totalSteps;
+        _todaySteps = 0;
+      });
+    }
   }
 
   @override
@@ -78,9 +117,16 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
     });
   }
 
-  void _onStepCount(StepCount event) {
+  void _onStepCount(StepCount event) async {
+    final totalSteps = event.steps;
+
+    // 날짜가 바뀌었는지 체크하고 기준값 업데이트
+    await _saveTodayBaseSteps(totalSteps);
+
     setState(() {
-      _steps = event.steps.toString();
+      // 오늘 걸음 수 = 전체 걸음 수 - 오늘 자정 기준 걸음 수
+      _todaySteps = totalSteps - _baseStepCount;
+      if (_todaySteps < 0) _todaySteps = 0; // 음수 방지
     });
   }
 
@@ -90,25 +136,18 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
     });
   }
 
-  bool get _isGoalAchieved => int.tryParse(_steps) != null && int.parse(_steps) >= _goalSteps;
+  bool get _isGoalAchieved => _todaySteps >= _goalSteps;
 
   double get _progress {
-    final steps = int.tryParse(_steps) ?? 0;
-    return (steps / _goalSteps).clamp(0.0, 1.0);
+    return (_todaySteps / _goalSteps).clamp(0.0, 1.0);
   }
 
-  // CO2 감소량 계산 (걸음 수 기반)
   double get _co2Reduced {
-    final steps = int.tryParse(_steps) ?? 0;
-    // 10,000보 = 약 5km 걷기 = 자동차 대비 약 0.8kg CO2 감소
-    return (steps / 10000) * 0.8;
+    return (_todaySteps / 10000) * 0.8;
   }
 
-  // 나무 심기 효과
   int get _treesPlanted {
-    final steps = int.tryParse(_steps) ?? 0;
-    // 10,000보마다 나무 1그루 심기 효과
-    return (steps / 10000).floor();
+    return (_todaySteps / 10000).floor();
   }
 
   Future<void> _claimPoints() async {
@@ -133,7 +172,7 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final result = await _stepPointService.earnStepsPoints(
         userNo: userNo,
-        steps: int.parse(_steps),
+        steps: _todaySteps,
         date: today,
       );
 
@@ -243,7 +282,6 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // 헤더
               Padding(
                 padding: EdgeInsets.all(20),
                 child: Row(
@@ -254,7 +292,7 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
                       onPressed: () => Navigator.pop(context),
                     ),
                     Text(
-                      '만보기',
+                      'ESG 만보기',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -268,7 +306,6 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
 
               SizedBox(height: 20),
 
-              // 메인 지구 비주얼
               ScaleTransition(
                 scale: _scaleAnimation,
                 child: Container(
@@ -298,7 +335,7 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            _steps,
+                            _todaySteps.toString(),
                             style: TextStyle(
                               fontSize: 48,
                               fontWeight: FontWeight.bold,
@@ -321,7 +358,6 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
 
               SizedBox(height: 10),
 
-              // 진행률 바
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 40),
                 child: Column(
@@ -336,7 +372,7 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
                     ),
                     SizedBox(height: 8),
                     Text(
-                      '목표까지 ${_goalSteps - (int.tryParse(_steps) ?? 0)} 걸음',
+                      '목표까지 ${_goalSteps - _todaySteps} 걸음',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -349,7 +385,6 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
 
               SizedBox(height: 30),
 
-              // ESG 임팩트 카드
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 20),
                 padding: EdgeInsets.all(24),
@@ -376,7 +411,6 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
                     ),
                     SizedBox(height: 24),
 
-                    // CO2 감소
                     _buildImpactItem(
                       icon: Icons.cloud_off,
                       color: Colors.blue[400]!,
@@ -389,7 +423,6 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
                     Divider(),
                     SizedBox(height: 16),
 
-                    // 나무 심기
                     _buildImpactItem(
                       icon: Icons.park,
                       color: Colors.green[600]!,
@@ -402,12 +435,11 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
                     Divider(),
                     SizedBox(height: 16),
 
-                    // 칼로리 소모
                     _buildImpactItem(
                       icon: Icons.local_fire_department,
                       color: Colors.orange[600]!,
                       label: '칼로리 소모',
-                      value: '${((int.tryParse(_steps) ?? 0) * 0.04).toStringAsFixed(0)} kcal',
+                      value: '${(_todaySteps * 0.04).toStringAsFixed(0)} kcal',
                       subtitle: '건강 증진',
                     ),
                   ],
@@ -416,7 +448,6 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
 
               SizedBox(height: 24),
 
-              // 보상 안내
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 20),
                 padding: EdgeInsets.all(20),
@@ -465,7 +496,6 @@ class _StepCounterPageState extends State<StepCounterPage> with SingleTickerProv
 
               SizedBox(height: 24),
 
-              // 포인트 받기 버튼
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20),
                 child: SizedBox(
