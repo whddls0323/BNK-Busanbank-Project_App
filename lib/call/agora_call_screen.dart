@@ -1,16 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+
+import 'package:tkbank/config/api_config.dart';
 import 'package:tkbank/services/token_storage_service.dart';
 
-
 class AgoraCallScreen extends StatefulWidget {
-  final String voiceSessionId;
-  final String agoraChannel;
+  final String voiceSessionId; // TEST_SESSION_APP_XXXX
+  final String agoraChannel;   // 서버가 내려준 채널(없으면 fallback 가능)
   final String consultantId;
 
   const AgoraCallScreen({
@@ -25,16 +27,15 @@ class AgoraCallScreen extends StatefulWidget {
 }
 
 class _AgoraCallScreenState extends State<AgoraCallScreen> {
-  static const String baseUrl = 'http://10.0.2.2:8080/busanbank';
-
-  // ✅ 당신 서버 컨트롤러 기준: POST /api/call/{sid}/status-with-token
-  Uri _statusUri(String sid) => Uri.parse('$baseUrl/api/call/$sid/status-with-token');
-
-  // ✅ 고객 종료 API (제가 이전에 안내한 형태로 맞춤)
-  // POST /api/call/voice/{sid}/end
-  Uri _endUri(String sid) => Uri.parse('$baseUrl/api/call/voice/$sid/end');
-
   final TokenStorageService _tokenStorage = TokenStorageService();
+
+  // ✅ status-with-token: POST /api/call/{sid}/status-with-token
+  Uri _statusUri(String sid) =>
+      Uri.parse('${ApiConfig.baseUrl}/api/call/$sid/status-with-token');
+
+  // ✅ 고객 end: POST /api/call/{sid}/end (CallEndController)
+  Uri _endUri(String sid) =>
+      Uri.parse('${ApiConfig.baseUrl}/api/call/$sid/end');
 
   RtcEngine? _engine;
   Timer? _pollTimer;
@@ -42,6 +43,7 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
   bool _joined = false;
   bool _muted = false;
   bool _loading = true;
+  bool _ending = false;
 
   int _localUid = 0;
   int? _remoteUid;
@@ -63,169 +65,145 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
   }
 
   void _append(String s) {
+    if (!mounted) return;
     setState(() => _log = '$_log\n$s');
   }
 
   Future<void> _boot() async {
-    // 1) 마이크 권한
     final mic = await Permission.microphone.request();
     if (!mic.isGranted) {
       setState(() {
         _loading = false;
-        _status = '마이크 권한 필요';
+        _status = '마이크 권한이 필요합니다.';
       });
       return;
     }
 
     setState(() {
-      _loading = true;
       _status = '토큰 대기 중...';
+      _loading = false;
     });
 
-    // 2) 토큰 폴링 (30초)
     int tick = 0;
-
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(seconds: 1), (t) async {
       tick++;
+      if (tick > 30) {
+        t.cancel();
+        if (!mounted) return;
+        setState(() {
+          _status = '토큰 대기 시간 초과';
+          _loading = false;
+        });
+        return;
+      }
 
       final info = await _fetchTokenOnce();
       if (info != null) {
         t.cancel();
         await _joinAgora(info);
-        return;
-      }
-
-      // ✅ 401/403 같은 경우는 계속 폴링하면 의미 없어서 중단하는 게 좋음
-      // _fetchTokenOnce 내부에서 로그를 남기니, 여기서는 시간만 체크
-      if (tick >= 30) {
-        t.cancel();
-        if (!mounted) return;
-        setState(() {
-          _loading = false;
-          _status = '토큰 대기 시간 초과 (서버에서 token이 내려오지 않음)';
-        });
       }
     });
   }
 
-  /// ✅ status-with-token 한 번 조회
   Future<_TokenInfo?> _fetchTokenOnce() async {
     try {
       final jwt = await _tokenStorage.readToken();
-      if (jwt == null || jwt.isEmpty) {
-        _append('[token] JWT 없음(로그인 필요)');
-        return null;
-      }
 
       final res = await http.post(
         _statusUri(widget.voiceSessionId),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $jwt', // ✅ 핵심: 인증 붙이기
+          if (jwt != null && jwt.isNotEmpty) 'Authorization': 'Bearer $jwt',
         },
         body: jsonEncode({'role': 'CUSTOMER'}),
       );
 
-      // ✅ 응답 코드 로그 남기기 (원인 파악용)
-      if (res.statusCode != 200) {
-        _append('[status] http=${res.statusCode} body=${res.body}');
-        // 401/403이면 폴링해도 계속 실패 -> 바로 종료
-        if (res.statusCode == 401 || res.statusCode == 403) {
-          if (mounted) {
-            setState(() {
-              _loading = false;
-              _status = '인증 실패(로그인 토큰 확인 필요)';
-            });
-          }
-          _pollTimer?.cancel();
-        }
-        return null;
-      }
+      final body = utf8.decode(res.bodyBytes);
+      debugPrint('📌 [status-with-token] status=${res.statusCode} body=$body');
 
-      final Map<String, dynamic> data = jsonDecode(res.body);
+      if (res.statusCode != 200) return null;
 
-      // ✅ 서버가 token을 "token" 또는 "callToken" 등으로 내려줄 수 있어 방어적으로 처리
-      final dynamic tokenObj = data['token'] ?? data['callToken'] ?? data['agoraToken'];
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final tokenObj = data['token'];
+      if (tokenObj == null) return null; // 아직 발급 전
 
-      if (tokenObj == null) {
-        // callStatus 힌트가 있으면 UI 반영
-        final cs = (data['callStatus'] ?? '').toString();
-        if (cs.isNotEmpty) _append('[status] callStatus=$cs');
+      final appId = (tokenObj['appId'] ?? '').toString();
+      final channel = (tokenObj['channel'] ?? widget.agoraChannel).toString();
+      final token = (tokenObj['token'] ?? '').toString();
 
-        return null;
-      }
+      final uidDynamic = tokenObj['uid'];
+      final uid = (uidDynamic is int) ? uidDynamic : (int.tryParse('$uidDynamic') ?? 0);
 
-      final String appId = (tokenObj['appId'] ?? '').toString();
-      final String channel =
-      (tokenObj['channel'] ?? data['agoraChannel'] ?? widget.agoraChannel).toString();
-      final dynamic uidRaw = tokenObj['uid'];
-      final String token = (tokenObj['token'] ?? '').toString();
-
-      int uid = 0;
-      if (uidRaw is int) uid = uidRaw;
-      if (uidRaw is String) uid = int.tryParse(uidRaw) ?? 0;
-
-      if (appId.isEmpty || channel.isEmpty || token.isEmpty) {
-        _append('[token] invalid payload: $tokenObj');
-        return null;
-      }
+      if (appId.isEmpty || channel.isEmpty || token.isEmpty) return null;
 
       return _TokenInfo(appId: appId, channel: channel, uid: uid, token: token);
     } catch (e) {
-      _append('[status] parse error: $e');
+      debugPrint('📌 [status-with-token] error=$e');
       return null;
     }
   }
 
   Future<void> _joinAgora(_TokenInfo info) async {
-    if (!mounted) return;
-
     setState(() {
       _loading = true;
-      _status = 'Agora 초기화/입장 중...';
+      _status = 'Agora 입장 중...';
     });
+
+    _localUid = info.uid;
 
     final engine = createAgoraRtcEngine();
     _engine = engine;
-    _localUid = info.uid;
 
-    // 1) initialize 먼저
-    await engine.initialize(RtcEngineContext(appId: info.appId));
-
-    // 2) 그 다음 이벤트 등록 (중요)
     engine.registerEventHandler(
       RtcEngineEventHandler(
-        onJoinChannelSuccess: (RtcConnection c, int elapsed) {
+        onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
           if (!mounted) return;
           setState(() {
             _joined = true;
             _loading = false;
-            _status = '채널 입장 완료(통화 중)';
+            _status = '통화 중';
           });
-          _append('[agora] join success channel=${c.channelId} uid=${c.localUid}');
         },
-        onUserJoined: (RtcConnection c, int uid, int elapsed) {
+
+        onConnectionStateChanged: (
+            RtcConnection connection,
+            ConnectionStateType state,
+            ConnectionChangedReasonType reason,
+            ) {
           if (!mounted) return;
-          setState(() => _remoteUid = uid);
-          _append('[agora] remote joined uid=$uid');
+
+          if (state == ConnectionStateType.connectionStateConnected) {
+            setState(() {
+              _joined = true;
+              _loading = false;
+              _status = '통화 중';
+            });
+          }
+
+          _append('[agora] connState=$state reason=$reason');
         },
-        onUserOffline: (RtcConnection c, int uid, UserOfflineReasonType reason) {
+
+        onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
+          if (!mounted) return;
+          setState(() => _remoteUid = remoteUid);
+        },
+
+        onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
           if (!mounted) return;
           setState(() => _remoteUid = null);
-          _append('[agora] remote offline uid=$uid reason=$reason');
         },
+
         onError: (ErrorCodeType err, String msg) {
           _append('[agora][ERR] $err $msg');
         },
       ),
     );
 
-    // 3) 오디오/역할 설정
+    await engine.initialize(RtcEngineContext(appId: info.appId));
     await engine.enableAudio();
     await engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
 
-    // 4) join
     await engine.joinChannel(
       token: info.token,
       channelId: info.channel,
@@ -233,9 +211,16 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
       options: const ChannelMediaOptions(),
     );
 
-    if (!mounted) return;
-    setState(() {
-      _status = '입장 요청 완료... (상대 대기)';
+    // ✅ 핵심: 여기서 '채널 연결 중...'으로 덮어쓰면 안 됨
+    // 대신, 잠깐 기다렸다가 아직 joined가 아니면 그때만 표시(선택)
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      if (!_joined) {
+        setState(() {
+          _status = '채널 연결 중...';
+          _loading = true;
+        });
+      }
     });
   }
 
@@ -243,83 +228,134 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
     try {
       await _engine?.leaveChannel();
       await _engine?.release();
-      _engine = null;
     } catch (_) {}
+    _engine = null;
   }
 
   Future<void> _toggleMute() async {
     if (_engine == null) return;
     _muted = !_muted;
     await _engine!.muteLocalAudioStream(_muted);
+    if (!mounted) return;
     setState(() {});
   }
 
   Future<void> _hangup() async {
+    if (_ending) return;
+    _ending = true;
+
+    // 1) Agora leave
     await _leaveAgora();
 
-    // ✅ end도 JWT 필요할 가능성이 높아서 Authorization 포함 권장
+    // 2) 서버 end (JWT 포함)
     try {
       final jwt = await _tokenStorage.readToken();
-      await http.post(
+      final res = await http.post(
         _endUri(widget.voiceSessionId),
-        headers: jwt == null || jwt.isEmpty
-            ? null
-            : {'Authorization': 'Bearer $jwt'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (jwt != null && jwt.isNotEmpty) 'Authorization': 'Bearer $jwt',
+        },
+        body: jsonEncode({'reason': 'CUSTOMER_HANGUP'}),
       );
-    } catch (_) {}
 
-    if (mounted) Navigator.pop(context);
+      final body = utf8.decode(res.bodyBytes);
+      debugPrint('📌 [end] status=${res.statusCode} body=$body');
+    } catch (e) {
+      debugPrint('📌 [end] error=$e');
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context);
+  }
+
+  Future<bool> _confirmExit() async {
+    if (_ending) return true;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('통화를 종료할까요?'),
+        content: const Text('나가면 통화가 종료됩니다.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('종료')),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      await _hangup();
+      return true;
+    }
+    return false;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('전화 통화')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(_status, style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Text('localUid=$_localUid / remoteUid=${_remoteUid ?? "-"}'),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: (_joined && !_loading) ? _toggleMute : null,
-                    icon: Icon(_muted ? Icons.mic_off : Icons.mic),
-                    label: Text(_muted ? '마이크 켜기' : '마이크 끄기'),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        await _confirmExit();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('전화 통화'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () async {
+              await _confirmExit();
+            },
+          ),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_status, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Text('voiceSessionId: ${widget.voiceSessionId}'),
+              Text('channel: ${widget.agoraChannel}'),
+              const SizedBox(height: 12),
+              Text('localUid=$_localUid / remoteUid=${_remoteUid ?? "-"}'),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: (_joined && !_loading) ? _toggleMute : null,
+                      icon: Icon(_muted ? Icons.mic_off : Icons.mic),
+                      label: Text(_muted ? '마이크 켜기' : '마이크 끄기'),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _hangup,
-                    icon: const Icon(Icons.call_end),
-                    label: const Text('통화 종료'),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _hangup,
+                      icon: const Icon(Icons.call_end),
+                      label: const Text('통화 종료'),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: SingleChildScrollView(
-                  child: Text(
-                    _log.isEmpty ? '(log empty)' : _log,
-                    style: const TextStyle(fontSize: 12),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Text(_log.isEmpty ? '(log empty)' : _log, style: const TextStyle(fontSize: 12)),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
