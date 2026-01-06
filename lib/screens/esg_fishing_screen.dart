@@ -149,7 +149,7 @@ class _EsgFishingScreenState extends State<EsgFishingScreen>
   void _showBiteAlert() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('🎣 쓰레기가 물었어요! 위로 올리세요!'),
+        content: Text('🐧 쓰레기가 물었어요! 위로 올리세요!'),
         duration: Duration(seconds: 1),
         backgroundColor: Colors.orange,
       ),
@@ -474,7 +474,7 @@ class _EsgFishingScreenState extends State<EsgFishingScreen>
         guideColor = Colors.yellow.shade700;
         break;
       case GameState.casting:
-        guideText = '🎣 낚싯줄을 던지는 중...';
+        guideText = '🐧 낚싯줄을 던지는 중...';
         guideColor = Colors.orange;
         break;
       case GameState.waiting:

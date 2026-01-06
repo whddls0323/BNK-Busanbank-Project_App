@@ -90,7 +90,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildHeader() {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    // 2026/01/06 - 프로필 사진 업데이트 반영을 위해 listen: true로 변경 - 작성자: 진원
+    final authProvider = Provider.of<AuthProvider>(context, listen: true);
     final avatarImage = authProvider.avatarImage;
 
     return Container(

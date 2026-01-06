@@ -76,6 +76,7 @@ class AuthProvider with ChangeNotifier {
     try {
       final jsonData = await _memberService.login(userId, userPw);
 
+      print('[DEBUG] 백엔드 로그인 응답: $jsonData');
       print('[DEBUG] 서버 응답 전체: $jsonData'); // 26.01.01_home screen 고객 이름 뜨게 하기_수빈
 
       final accessToken = jsonData['accessToken'];
@@ -85,6 +86,8 @@ class AuthProvider with ChangeNotifier {
       final role = jsonData['role'] ?? 'USER';
       final refreshToken = jsonData['refreshToken'];
 
+      print('[DEBUG] userNo: $userNo (타입: ${userNo.runtimeType})');
+      print('[DEBUG] userId: $userIdFromApi (타입: ${userIdFromApi.runtimeType})');
       print('[DEBUG] userName 파싱 결과: $userName'); // 26.01.01_home screen 고객 이름 뜨게 하기_수빈
 
       if (accessToken != null && userNo != null) {

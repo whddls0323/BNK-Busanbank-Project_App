@@ -41,10 +41,11 @@ class _BranchCheckinScreenState extends State<BranchCheckinScreen> {
   }
 
   /// 2026/01/05 - 위치 권한 요청 및 데이터 로드 - 작성자: 진원
+  /// 2026/01/06 - WebView 전송은 onPageFinished에서 처리하도록 변경 - 작성자: 진원
   Future<void> _requestLocationPermissionAndLoad() async {
     await _requestLocationPermission();
     await _loadData();
-    await _sendLocationToWebView();
+    // _sendLocationToWebView() 호출 제거 - onPageFinished에서 호출됨
   }
 
   /// 2026/01/05 - 위치 권한 요청 - 작성자: 진원
@@ -127,6 +128,25 @@ class _BranchCheckinScreenState extends State<BranchCheckinScreen> {
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
+      // 2026/01/06 - NavigationDelegate 추가로 페이지 로드 완료 후 데이터 전송 - 작성자: 진원
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            setState(() {
+              isLoading = true;
+            });
+          },
+          onPageFinished: (String url) async {
+            // HTML 로드 완료 후 영업점 데이터와 위치 정보 전달
+            debugPrint('[DEBUG] HTML 로드 완료, 데이터 전송 시작');
+            await _sendBranchesToWebView();
+            await _sendLocationToWebView();
+            setState(() {
+              isLoading = false;
+            });
+          },
+        ),
+      )
       ..addJavaScriptChannel(
         'FlutterChannel',
         onMessageReceived: (JavaScriptMessage message) {
@@ -205,8 +225,8 @@ class _BranchCheckinScreenState extends State<BranchCheckinScreen> {
         isLoading = false;
       });
 
-      // JavaScript로 영업점 데이터 전달
-      _sendBranchesToWebView();
+      // 2026/01/06 - WebView 전송은 onPageFinished에서 처리하도록 변경 - 작성자: 진원
+      // _sendBranchesToWebView() 호출 제거 - onPageFinished에서 호출됨
     } catch (e) {
       setState(() {
         isLoading = false;

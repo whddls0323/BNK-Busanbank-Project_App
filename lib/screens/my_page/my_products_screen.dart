@@ -30,13 +30,18 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
   Future<void> _loadProducts() async {
     try {
       final authProvider = context.read<AuthProvider>();
-      final userId = authProvider.userId;
+      final userNo = authProvider.userNo;
 
-      if (userId == null) {
+      print('[DEBUG] AuthProvider userNo: $userNo');
+      print('[DEBUG] AuthProvider userId: ${authProvider.userId}');
+      print('[DEBUG] AuthProvider userName: ${authProvider.userName}');
+
+      if (userNo == null) {
         throw Exception('로그인 필요');
       }
 
-      final products = await _productService.getUserProducts(userId);
+      print('[DEBUG] getUserProducts 호출 - userNo: $userNo');
+      final products = await _productService.getUserProducts(userNo);
 
       setState(() {
         _products = products;
@@ -56,15 +61,14 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
   Future<void> _terminateProduct(UserProduct product) async {
     print('[DEBUG] 해지 버튼 클릭됨 - 상품명: ${product.productName}');
 
-    // Get userId before async operation to avoid BuildContext across async gaps
+    // Get userNo before async operation to avoid BuildContext across async gaps
     final authProvider = context.read<AuthProvider>();
-    final userId = authProvider.userId;
     final userNo = authProvider.userNo;
 
-    print('[DEBUG] userId: $userId');
+    print('[DEBUG] userNo: $userNo');
 
-    if (userId == null || userNo == null) {
-      print('[ERROR] userId가 null입니다');
+    if (userNo == null) {
+      print('[ERROR] userNo가 null입니다');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('로그인이 필요합니다')),
@@ -117,10 +121,10 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
     if (confirmed != true) return;
 
     try {
-      print('[DEBUG] 해지 요청 시작 - userId: $userId, productNo: ${product.productNo}, depositAccountNo: $depositAccountNo');
+      print('[DEBUG] 해지 요청 시작 - userNo: $userNo, productNo: ${product.productNo}, depositAccountNo: $depositAccountNo');
 
       final result = await _productService.terminateProduct(
-        userId: userId,
+        userNo: userNo,
         productNo: product.productNo,
         startDate: product.startDate,
         depositAccountNo: depositAccountNo,
@@ -237,6 +241,7 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
+      color: product.isActive ? null : Colors.grey[100],
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -246,23 +251,41 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    product.productName,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          product.productName,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: product.isActive ? Colors.black : Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                      if (!product.isActive) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '(해지됨)',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.red[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: product.isActive ? Colors.green : Colors.grey,
+                    color: product.isActive ? Colors.green : Colors.red[700],
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    product.isActive ? '활성' : '해지',
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                    product.isActive ? '활성' : '해지됨',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
