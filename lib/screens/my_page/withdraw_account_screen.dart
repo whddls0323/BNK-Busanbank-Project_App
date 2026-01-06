@@ -225,16 +225,7 @@ class _WithdrawAccountScreenState extends State<WithdrawAccountScreen> {
           Text('• 가입한 금융상품 정보'),
           Text('• 활동 이력'),
           SizedBox(height: 16),
-          Text(
-            '기타 안내',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text('• 탈퇴 후 7일간 재가입이 불가능합니다'),
-          Text('• 진행 중인 금융상품은 해지 후 탈퇴해주세요'),
+
         ],
       ),
     );

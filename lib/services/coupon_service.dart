@@ -31,24 +31,47 @@ class CouponService {
   }
 
   // 쿠폰 등록
+  // 2026/01/06 - 백엔드 API와 일치하도록 쿼리 파라미터로 전송 - 작성자: 진원
   Future<Map<String, dynamic>> registerCoupon(String couponCode) async {
     final token = await _tokenStorage.readToken();
     final headers = {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded', // 폼 데이터 형식
       if (token != null) 'Authorization': 'Bearer $token',
     };
 
+    // 쿼리 파라미터로 쿠폰 코드 전송 (백엔드 @RequestParam과 일치)
     final response = await http.post(
-      Uri.parse('$baseUrl/my/coupon/register'),
+      Uri.parse('$baseUrl/my/coupon/register?couponCode=$couponCode'),
       headers: headers,
-      body: jsonEncode({'couponCode': couponCode}),
     );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['message'] ?? '쿠폰 등록 실패');
+    print('[DEBUG] 쿠폰 등록 요청 - 쿠폰 코드: $couponCode'); // 2026/01/06 - 디버그 로그 - 작성자: 진원
+    print('[DEBUG] 쿠폰 등록 응답 코드: ${response.statusCode}'); // 2026/01/06 - 디버그 로그 - 작성자: 진원
+    print('[DEBUG] 쿠폰 등록 응답 내용: ${response.body}'); // 2026/01/06 - 디버그 로그 - 작성자: 진원
+
+    // 2026/01/06 - 빈 응답 처리 추가 - 작성자: 진원
+    if (response.body.isEmpty) {
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': '쿠폰이 등록되었습니다'};
+      } else {
+        throw Exception('쿠폰 등록 실패: 서버 응답이 없습니다 (상태 코드: ${response.statusCode})');
+      }
+    }
+
+    // 2026/01/06 - JSON 파싱 오류 처리 개선 - 작성자: 진원
+    try {
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return data;
+      } else {
+        throw Exception(data['message'] ?? '쿠폰 등록 실패');
+      }
+    } catch (e) {
+      if (e is FormatException) {
+        throw Exception('서버 응답 형식 오류: ${response.body}');
+      }
+      rethrow;
     }
   }
 }

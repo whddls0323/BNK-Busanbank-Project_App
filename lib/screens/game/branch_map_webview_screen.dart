@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';  // 2025-12-17 - 위치 권한 - 작성자: 진원
+import 'package:geolocator/geolocator.dart';  // 2026/01/06 - GPS 위치 서비스 - 작성자: 진원
 import '../../providers/auth_provider.dart';
 import '../../services/flutter_api_service.dart';
 
@@ -42,7 +43,10 @@ class _BranchMapWebViewScreenState extends State<BranchMapWebViewScreen> {
           },
           onPageFinished: (String url) async {
             // 2025-12-17 - HTML 로드 완료 후 영업점 데이터 전달 - 작성자: 진원
+            // 2026/01/06 - 위치 정보 전달 추가 - 작성자: 진원
+            debugPrint('[DEBUG] HTML 로드 완료, 데이터 전송 시작');
             await _loadBranchesFromBackend();
+            await _sendLocationToWebView();
             setState(() {
               isLoading = false;
             });
@@ -85,6 +89,85 @@ class _BranchMapWebViewScreenState extends State<BranchMapWebViewScreen> {
       debugPrint('영업점 데이터 전달 완료: ${branches.length}개');
     } catch (e) {
       debugPrint('영업점 데이터 로드 실패: $e');
+    }
+  }
+
+  // 2026/01/06 - GPS 위치 정보를 JavaScript로 전달 - 작성자: 진원
+  // 2026/01/06 - 위치 서비스 확인 및 정확도 설정 개선 - 작성자: 진원
+  Future<void> _sendLocationToWebView() async {
+    try {
+      debugPrint('[DEBUG] 위치 정보 가져오기 시작');
+
+      // 위치 서비스 활성화 확인
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('[ERROR] 위치 서비스가 비활성화되어 있습니다');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('위치 서비스를 활성화해주세요'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      // 위치 권한 확인
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          debugPrint('[ERROR] 위치 권한이 거부되었습니다');
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        debugPrint('[ERROR] 위치 권한이 영구적으로 거부되었습니다');
+        return;
+      }
+
+      // 현재 위치 가져오기 (정확도를 medium으로 낮춰서 더 빠르게)
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 15),
+      ).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () async {
+          // 타임아웃 시 마지막으로 알려진 위치 사용
+          debugPrint('[WARN] 현재 위치 타임아웃, 마지막 위치 사용 시도');
+          final lastPosition = await Geolocator.getLastKnownPosition();
+          if (lastPosition != null) {
+            return lastPosition;
+          }
+          throw Exception('위치를 가져올 수 없습니다. GPS 신호를 확인해주세요.');
+        },
+      );
+
+      debugPrint('[DEBUG] 위치 정보 획득: ${position.latitude}, ${position.longitude}');
+
+      // JavaScript로 위치 전달
+      final jsCode = '''
+        if (typeof updateMyLocation === 'function') {
+          updateMyLocation(${position.latitude}, ${position.longitude});
+        } else {
+          console.error('updateMyLocation 함수가 없습니다');
+        }
+      ''';
+
+      await controller.runJavaScript(jsCode);
+      debugPrint('[DEBUG] 위치 정보 JavaScript 전달 완료');
+    } catch (e) {
+      debugPrint('[ERROR] 위치 정보 가져오기 실패: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('위치 정보를 가져올 수 없습니다. GPS가 켜져있는지 확인해주세요.'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 

@@ -71,9 +71,10 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
           orElse: () => _cameras!.first,
         );
 
+        // 2026/01/06 - 얼굴 감지 개선을 위해 해상도 high로 변경 - 작성자: 진원
         _cameraController = CameraController(
           frontCamera,
-          ResolutionPreset.medium,
+          ResolutionPreset.high, // medium → high (얼굴 감지 정확도 향상)
           enableAudio: false,
         );
 
@@ -127,6 +128,30 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
       _isProcessing = true;
 
       try {
+        // 2026/01/06 - 얼굴 감지 개선: 회전 각도 동적 계산 - 작성자: 진원
+        // 카메라 센서의 실제 회전 각도 계산
+        final sensorOrientation = _cameraController!.description.sensorOrientation;
+        final rotationCompensation = sensorOrientation ~/ 90;
+
+        // Android 전면 카메라 회전 매핑
+        InputImageRotation rotation;
+        switch (rotationCompensation) {
+          case 0:
+            rotation = InputImageRotation.rotation0deg;
+            break;
+          case 1:
+            rotation = InputImageRotation.rotation90deg;
+            break;
+          case 2:
+            rotation = InputImageRotation.rotation180deg;
+            break;
+          case 3:
+            rotation = InputImageRotation.rotation270deg;
+            break;
+          default:
+            rotation = InputImageRotation.rotation0deg;
+        }
+
         // InputImage 포맷 결정 (Android는 보통 yuv420 또는 nv21)
         final WriteBuffer allBytes = WriteBuffer();
         for (final Plane plane in image.planes) {
@@ -140,11 +165,13 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
                 ? InputImageFormat.yuv420
                 : InputImageFormat.nv21;
 
+        print('[EmotionGame] 📷 센서 방향: $sensorOrientation°, 회전: $rotation'); // 디버그
+
         final inputImage = InputImage.fromBytes(
           bytes: bytes,
           metadata: InputImageMetadata(
             size: Size(image.width.toDouble(), image.height.toDouble()),
-            rotation: InputImageRotation.rotation270deg, // 전면 카메라는 270도 회전
+            rotation: rotation, // 동적 계산된 회전 각도 사용
             format: inputImageFormat,
             bytesPerRow: image.planes[0].bytesPerRow,
           ),

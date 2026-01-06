@@ -161,59 +161,94 @@
         }
 
         // 2026/01/05 - Flutter에서 위치 정보를 받아서 업데이트 - 작성자: 진원
+        // 2026/01/06 - 디버그 로그 강화 및 에러 처리 추가 - 작성자: 진원
         function updateMyLocation(lat, lon) {
-            console.log('Flutter에서 위치 수신:', lat, lon);
-            myPosition = new kakao.maps.LatLng(lat, lon);
+            console.log('📍 Flutter에서 위치 수신:', lat, lon);
 
-            // 내 위치 마커 (파란색 별)
-            var imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png';
-            var imageSize = new kakao.maps.Size(24, 35);
-            var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+            try {
+                myPosition = new kakao.maps.LatLng(lat, lon);
+                console.log('📍 myPosition 설정 완료:', myPosition);
 
-            // 기존 마커가 있으면 제거
-            if (myLocationMarker) {
-                myLocationMarker.setMap(null);
+                // 내 위치 마커 (파란색 별)
+                var imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png';
+                var imageSize = new kakao.maps.Size(24, 35);
+                var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+
+                // 기존 마커가 있으면 제거
+                if (myLocationMarker) {
+                    myLocationMarker.setMap(null);
+                    console.log('📍 기존 마커 제거');
+                }
+
+                myLocationMarker = new kakao.maps.Marker({
+                    map: map,
+                    position: myPosition,
+                    image: markerImage,
+                    title: '내 위치'
+                });
+                console.log('📍 내 위치 마커 생성 완료');
+
+                // 기존 반경 원이 있으면 제거
+                if (radiusCircle) {
+                    radiusCircle.setMap(null);
+                    console.log('📍 기존 반경 원 제거');
+                }
+
+                // 1km 반경 원 표시
+                radiusCircle = new kakao.maps.Circle({
+                    center: myPosition,
+                    radius: 1000, // 1km
+                    strokeWeight: 2,
+                    strokeColor: '#2196F3',
+                    strokeOpacity: 0.6,
+                    strokeStyle: 'solid',
+                    fillColor: '#2196F3',
+                    fillOpacity: 0.1
+                });
+                radiusCircle.setMap(map);
+                console.log('📍 1km 반경 원 생성 완료');
+
+                // 현재 위치로 지도 중심 이동
+                map.setCenter(myPosition);
+                map.setLevel(6);
+                console.log('📍 지도 중심 이동 완료');
+
+                showMessage('위치 정보를 가져왔습니다', true);
+                console.log('✅ updateMyLocation 완료');
+            } catch (error) {
+                console.error('❌ updateMyLocation 실패:', error);
+                showMessage('위치 정보 처리 중 오류가 발생했습니다', false);
             }
-
-            myLocationMarker = new kakao.maps.Marker({
-                map: map,
-                position: myPosition,
-                image: markerImage,
-                title: '내 위치'
-            });
-
-            // 기존 반경 원이 있으면 제거
-            if (radiusCircle) {
-                radiusCircle.setMap(null);
-            }
-
-            // 1km 반경 원 표시
-            radiusCircle = new kakao.maps.Circle({
-                center: myPosition,
-                radius: 1000, // 1km
-                strokeWeight: 2,
-                strokeColor: '#2196F3',
-                strokeOpacity: 0.6,
-                strokeStyle: 'solid',
-                fillColor: '#2196F3',
-                fillOpacity: 0.1
-            });
-            radiusCircle.setMap(map);
-
-            // 현재 위치로 지도 중심 이동
-            map.setCenter(myPosition);
-            map.setLevel(6);
-
-            showMessage('위치 정보를 가져왔습니다', true);
         }
 
         // 2026/01/05 - 내 위치로 이동 - 작성자: 진원
+        // 2026/01/06 - 부드러운 이동으로 이미지 버퍼 문제 해결 - 작성자: 진원
+        // 2026/01/06 - 디버그 로그 및 에러 처리 강화 - 작성자: 진원
         function moveToMyLocation() {
+            console.log('📍 현재 위치로 이동 버튼 클릭');
+            console.log('📍 myPosition:', myPosition);
+
             if (myPosition) {
-                map.setCenter(myPosition);
-                map.setLevel(6);
-                showMessage('내 위치로 이동했습니다', true);
+                try {
+                    console.log('📍 위치 이동 시작: lat=' + myPosition.getLat() + ', lng=' + myPosition.getLng());
+
+                    // panTo 사용으로 부드럽게 이동 (이미지 버퍼 문제 완화)
+                    map.panTo(myPosition);
+
+                    // 약간의 지연 후 줌 레벨 조정
+                    setTimeout(function() {
+                        map.setLevel(6);
+                        console.log('📍 줌 레벨 조정 완료');
+                    }, 300);
+
+                    showMessage('내 위치로 이동했습니다', true);
+                    console.log('✅ 위치 이동 성공');
+                } catch (error) {
+                    console.error('❌ 위치 이동 실패:', error);
+                    showMessage('위치 이동 중 오류가 발생했습니다', false);
+                }
             } else {
+                console.warn('⚠️ myPosition이 null입니다');
                 showMessage('위치 정보를 가져오는 중입니다. 잠시 후 다시 시도해주세요.', false);
             }
         }
