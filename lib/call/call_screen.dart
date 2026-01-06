@@ -19,7 +19,7 @@ class _CallScreenState extends State<CallScreen> {
   late final VoiceCallController controller;
 
   String _log = '';
-  bool _navigatedToAgora = false; // ✅ 중복 push 방지
+  bool _navigatedToAgora = false; // ✅ Agora 중복 이동 방지
 
   @override
   void initState() {
@@ -30,51 +30,8 @@ class _CallScreenState extends State<CallScreen> {
       ws: VoiceWebSocketService(),
     )
       ..addListener(() => setState(() {}))
-      ..onAccepted = _goAgora
-      ..onEnded = () => _append('[VOICE] ended pushed');
-  }
-
-  String _newSessionId() {
-    final r = Random().nextInt(900000) + 100000;
-    return 'TEST_SESSION_APP_$r';
-  }
-
-  void _append(String s) {
-    setState(() => _log = '$_log\n$s');
-  }
-
-  void _goAgora() async {
-    // ✅ ACCEPTED 이벤트가 여러 번 오거나 setState 반복될 수 있으니 1회만 이동
-    if (_navigatedToAgora) return;
-    _navigatedToAgora = true;
-
-    final sid = controller.sessionId;
-    final ch = controller.agoraChannel;
-
-    _append('[VOICE] ACCEPTED -> move Agora (sid=$sid channel=$ch)');
-
-    if (!mounted) return;
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AgoraCallScreen(
-          voiceSessionId: controller.sessionId,
-          agoraChannel: controller.agoraChannel,
-          consultantId: controller.consultantId,
-        ),
-      ),
-    );
-
-    // ✅ Agora 화면에서 pop 되어 돌아오면, 다음 통화를 위해 상태를 정리
-    // (서버 end는 Agora에서 이미 호출함)
-    _append('[UI] back from Agora');
-    _navigatedToAgora = false;
-
-    // 화면만 초기화하고 싶으면 여기서 세션을 비워도 됩니다.
-    // 단, 서버에서 VOICE_ENDED가 push되는 구조면 controller.state=ended로 바뀌어 있을 가능성이 큼.
-    // 여기서는 UI가 다음 호출을 할 수 있도록 최소한만 초기화:
-    // controller.sessionId를 컨트롤러 내부에서 직접 바꾸지 않는 구조면,
-    // 사용자가 "전화 요청" 다시 누를 수 있게 화면을 idle로 돌리는 로직을 컨트롤러에 추가하는 게 정석.
+      ..onAccepted = _moveToAgora
+      ..onEnded = _onEndedByServer;
   }
 
   @override
@@ -83,9 +40,62 @@ class _CallScreenState extends State<CallScreen> {
     super.dispose();
   }
 
+  // =========================
+  // Util
+  // =========================
+  void _append(String s) {
+    setState(() => _log = '$_log\n$s');
+  }
+
+  String _newSessionId() {
+    final r = Random().nextInt(900000) + 100000;
+    return 'TEST_SESSION_APP_$r';
+  }
+
+  // =========================
+  // Agora 이동 (1회만)
+  // =========================
+  Future<void> _moveToAgora() async {
+    if (_navigatedToAgora) return;
+    _navigatedToAgora = true;
+
+    final sid = controller.sessionId;
+    final channel = controller.agoraChannel;
+
+    _append('[VOICE] ACCEPTED → Agora 이동 (sid=$sid, channel=$channel)');
+
+    if (!mounted) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AgoraCallScreen(
+          voiceSessionId: sid,
+          agoraChannel: channel,
+          consultantId: controller.consultantId,
+        ),
+      ),
+    );
+
+    // Agora 화면 종료 후 복귀
+    _append('[UI] back from Agora');
+    _navigatedToAgora = false;
+  }
+
+  // =========================
+  // 서버에서 VOICE_ENDED 수신
+  // =========================
+  void _onEndedByServer() {
+    _append('[VOICE] 서버에서 종료 이벤트 수신');
+    _navigatedToAgora = false;
+  }
+
+  // =========================
+  // UI
+  // =========================
   @override
   Widget build(BuildContext context) {
-    final s = controller.state;
+    final state = controller.state;
 
     return Scaffold(
       appBar: AppBar(title: const Text('전화 상담 (고객)')),
@@ -94,7 +104,7 @@ class _CallScreenState extends State<CallScreen> {
         child: Column(
           children: [
             _StatusCard(
-              state: s,
+              state: state,
               sessionId: controller.sessionId,
               wsOn: controller.ws.isConnected,
             ),
@@ -102,37 +112,47 @@ class _CallScreenState extends State<CallScreen> {
 
             Row(
               children: [
+                // =========================
+                // 전화 요청
+                // =========================
                 Expanded(
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.phone),
                     label: const Text('전화 요청'),
-                    onPressed: (s == UiVoiceCallState.idle)
+                    onPressed: (state == UiVoiceCallState.idle)
                         ? () async {
-                      final sid = _newSessionId();
-                      _append('[REQ] enqueue $sid');
+                            final sid = _newSessionId();
+                            _append('[REQ] enqueue $sid');
 
-                      await controller.requestCall(newSessionId: sid);
-                      _append('[OK] WAITING... (WS connect)');
+                            await controller.requestCall(
+                              newSessionId: sid,
+                            );
 
-                      // ✅ enqueue 성공 후 고객 WS 연결
-                      controller.attachWs(baseWs: ApiConfig.wsBase);
-                    }
+                            _append('[OK] WAITING...');
+                            controller.attachWs(
+                              baseWs: ApiConfig.wsBase,
+                            );
+                          }
                         : null,
                   ),
                 ),
+
                 const SizedBox(width: 10),
+
+                // =========================
+                // 종료 (Agora 들어가기 전까지만)
+                // =========================
                 Expanded(
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.call_end),
                     label: const Text('종료'),
-                    // ✅ 통화가 ACCEPTED 이후에는 Agora 화면에서 종료만 하게(여기서 중복 종료 방지)
                     onPressed: (controller.sessionId.isNotEmpty &&
-                        s != UiVoiceCallState.accepted)
+                            state != UiVoiceCallState.accepted)
                         ? () async {
-                      _append('[END] ${controller.sessionId}');
-                      await controller.endCall();
-                      _append('[OK] end requested');
-                    }
+                            _append('[END] ${controller.sessionId}');
+                            await controller.endCall();
+                            _append('[OK] end requested');
+                          }
                         : null,
                   ),
                 ),
@@ -140,6 +160,10 @@ class _CallScreenState extends State<CallScreen> {
             ),
 
             const SizedBox(height: 12),
+
+            // =========================
+            // Log
+            // =========================
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -157,7 +181,7 @@ class _CallScreenState extends State<CallScreen> {
               ),
             ),
 
-            if (s == UiVoiceCallState.error) ...[
+            if (state == UiVoiceCallState.error) ...[
               const SizedBox(height: 8),
               Text(
                 'ERROR: ${controller.errorMsg}',
@@ -171,6 +195,9 @@ class _CallScreenState extends State<CallScreen> {
   }
 }
 
+// =========================
+// 상태 카드
+// =========================
 class _StatusCard extends StatelessWidget {
   final UiVoiceCallState state;
   final String sessionId;
@@ -193,7 +220,7 @@ class _StatusCard extends StatelessWidget {
         icon = Icons.hourglass_empty;
         break;
       case UiVoiceCallState.requesting:
-        label = '요청 중...';
+        label = '요청 중';
         icon = Icons.sync;
         break;
       case UiVoiceCallState.waiting:
@@ -201,7 +228,7 @@ class _StatusCard extends StatelessWidget {
         icon = Icons.support_agent;
         break;
       case UiVoiceCallState.accepted:
-        label = '연결됨 (Agora 이동)';
+        label = '연결됨 (통화 화면 이동)';
         icon = Icons.check_circle;
         break;
       case UiVoiceCallState.ended:
@@ -229,7 +256,9 @@ class _StatusCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text('sessionId: ${sessionId.isEmpty ? "-" : sessionId}'),
               ],
