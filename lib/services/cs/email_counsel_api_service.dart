@@ -7,7 +7,7 @@ import '../../models/email_counsel_item.dart';
 import '../token_storage_service.dart';
 
 class EmailCounselApiService {
-  final String baseUrl = "http://10.0.2.2:8080/busanbank";
+  final String baseUrl = "http://192.168.219.105:8080/busanbank";
 
   Future<String> _mustToken() async {
     final token = await TokenStorageService().readToken();

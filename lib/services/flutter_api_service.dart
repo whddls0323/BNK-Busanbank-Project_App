@@ -227,7 +227,7 @@ class FlutterApiService {
   /// ✅ URL 기반 뉴스 분석
   Future<NewsAnalysisResult> analyzeNewsUrl(String url) async {
     final response = await _post(
-      '/flutter/news/analyze/url',
+      '/crawl/news', // 26.01.08 _ 경로 에러로 급하게 AI 분석이 안돼서 수정함 - 수빈
       {'url': url},
       needsAuth: false,  // 공개 API
     );
@@ -240,7 +240,7 @@ class FlutterApiService {
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse('$baseUrl/flutter/news/analyze/image'),
+      Uri.parse('$baseUrl/crawl/news/image'), // 26.01.08 _ 경로 에러로 급하게 AI 분석이 안돼서 수정함 - 수빈
     );
 
     // 헤더 추가

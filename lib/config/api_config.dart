@@ -3,7 +3,7 @@ import 'dart:io';
 class ApiConfig {
   static const host = String.fromEnvironment(
     'API_HOST',
-    defaultValue: '10.0.2.2', // 에뮬 기본
+    defaultValue: '192.168.219.105', // 에뮬 기본
   );
 
   static String get baseUrl => 'http://$host:8080/busanbank';

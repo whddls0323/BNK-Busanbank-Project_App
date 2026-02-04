@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:provider/provider.dart';
+import 'package:tkbank/theme/app_colors.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import '../../providers/auth_provider.dart';
@@ -362,40 +363,83 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_selectedGameType == null
-            ? '감정 분석 게임'
-            : _gameService.getGameName(_selectedGameType!)),
-        backgroundColor: const Color(0xFFFF9800),
-        foregroundColor: Colors.white,
+      backgroundColor: Colors.white,
+
+      body: Stack(
+        children: [
+          // 1️⃣ 메인 콘텐츠
+          _selectedGameType == null
+              ? _buildGameSelectionWithHeader()
+              : _buildCameraView(),
+
+          // 2️⃣ 공통 뒤로가기 버튼
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 8,
+            child: IconButton(
+              icon: const Icon(
+                Icons.chevron_left,
+                size: 34,
+                color: Colors.black,
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        ],
       ),
-      body: _selectedGameType == null
-          ? _buildGameSelection()
-          : _buildCameraView(),
+    );
+  }
+
+  Widget _buildGameSelectionWithHeader() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 100, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ===== 공통 큰 타이틀 =====
+          const Text(
+            '감정 분석 게임',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          const Text(
+            '표정을 분석해 감정을 측정하고\n포인트를 받아보세요.',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+              color: Colors.black54,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // ===== 기존 게임 선택 UI =====
+          _buildGameSelection(),
+        ],
+      ),
     );
   }
 
   /// 게임 선택 화면
   Widget _buildGameSelection() {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 50),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            '게임을 선택하세요',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
           _buildGameCard(
             gameType: 'SMILE_CHALLENGE',
             title: '웃음 챌린지',
             icon: '😊',
             reward: '50P',
-            color: const Color(0xFFFFEB3B),
+            color: AppColors.yellow,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           _buildGameCard(
             gameType: 'EMOTION_EXPRESS',
             title: '감정 표현 게임',
@@ -403,20 +447,20 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
             reward: '100P',
             color: const Color(0xFF9C27B0),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           _buildGameCard(
             gameType: 'HAPPINESS_METER',
             title: '행복 지수 측정',
             icon: '📊',
             reward: '최대 150P',
-            color: const Color(0xFF2196F3),
+            color: AppColors.pink,
           ),
         ],
       ),
     );
   }
 
-  /// 게임 카드
+  // 게임 카드
   Widget _buildGameCard({
     required String gameType,
     required String title,
@@ -426,14 +470,14 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
   }) {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: InkWell(
         onTap: () => _startGame(gameType),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             gradient: LinearGradient(
               colors: [color.withOpacity(0.7), color],
               begin: Alignment.topLeft,
@@ -451,26 +495,27 @@ class _EmotionGameScreenState extends State<EmotionGameScreen> {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.white,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _gameService.getGameDescription(gameType),
                       style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.white,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '보상: $reward',
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.white,
                       ),
                     ),
                   ],

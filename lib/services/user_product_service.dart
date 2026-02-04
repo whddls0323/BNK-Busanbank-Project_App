@@ -6,7 +6,7 @@ import '../models/user_product.dart';
 import 'token_storage_service.dart';
 
 class UserProductService {
-  final String baseUrl = "http://10.0.2.2:8080/busanbank";
+  final String baseUrl = "http://192.168.219.105:8080/busanbank";
   final TokenStorageService _tokenStorage = TokenStorageService();
 
   // 사용자 가입 상품 목록 조회

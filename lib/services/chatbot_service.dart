@@ -7,7 +7,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ChatbotService {
-  final String baseUrl = "http://10.0.2.2:8080/busanbank";
+  final String baseUrl = "http://192.168.219.105:8080/busanbank";
 
   Future<Map<String, dynamic>> ask(String message) async {
     final response = await http.post(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tkbank/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/bitcoin_service.dart';
 
@@ -144,121 +145,132 @@ class _BitcoinPredictionScreenState extends State<BitcoinPredictionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              // Header
-              _buildHeader(),
-              const SizedBox(height: 32),
+      backgroundColor: AppColors.gray1,
 
-              // Stock Info
-              _buildStockInfo(),
-              const SizedBox(height: 24),
+      body: Stack(
+        children: [
+          // 1️⃣ 메인 콘텐츠
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 70, 20, 20),
+              child: Column(
+                children: [
+                  _buildUnifiedHeader(),
+                  const SizedBox(height: 40),
 
-              // Question
-              _buildQuestion(),
-              const SizedBox(height: 24),
+                  _buildStockInfo(),
+                  const SizedBox(height: 30),
 
-              // Selection Buttons
-              _buildSelectionButtons(),
-              const SizedBox(height: 24),
+                  _buildQuestion(),
+                  const SizedBox(height: 30),
 
-              // Footer
-              _buildFooter(),
-            ],
+                  _buildSelectionButtons(),
+                  const SizedBox(height: 30),
+
+                  _buildFooter(),
+                ],
+              ),
+            ),
           ),
-        ),
+
+          // 2️⃣ 공통 뒤로가기 버튼
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 8,
+            child: IconButton(
+              icon: const Icon(
+                Icons.chevron_left,
+                size: 34,
+                color: Colors.black,
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.blue[50],
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Text(
-                '🎁 ',
-                style: TextStyle(fontSize: 14),
-              ),
-              Text(
-                '특별 이벤트',
-                style: TextStyle(
-                  color: Color(0xFF2563EB),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+  Widget _buildUnifiedHeader() {
+    return SizedBox(
+      width: double.infinity, // ⭐️ 핵심
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('🎁 ', style: TextStyle(fontSize: 18)),
+                Text(
+                  '이벤트',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          '비트코인 예측 챌린지',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF111827),
+          const SizedBox(height: 16),
+
+          const Text(
+            '비트코인 예측 챌린지',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '다음 시세를 예측하고 리워드를 받아가세요!',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
+          const SizedBox(height: 8),
+
+          Text(
+            '다음 시세를 예측하고\n리워드를 받아보세요',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+              height: 1.4,
+            ),
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildStockInfo() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(65, 40, 65, 40),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Color(0xFFEFF6FF), Color(0xFFE0E7FF)],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         children: [
           Text(
             _loading ? '로딩 중...' : _previousClosePrice ?? '-',
             style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF111827),
+              fontSize: 42,
+              fontWeight: FontWeight.w800,
+              color: AppColors.black,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             '현재가',
             style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[500],
+              fontSize: 16,
+              color: AppColors.gray5,
             ),
           ),
         ],
@@ -270,9 +282,9 @@ class _BitcoinPredictionScreenState extends State<BitcoinPredictionScreen> {
     return const Text(
       '다음 시세는 어떻게 될까요?',
       style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF1F2937),
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        color: AppColors.black,
       ),
       textAlign: TextAlign.center,
     );
@@ -322,19 +334,12 @@ class _BitcoinPredictionScreenState extends State<BitcoinPredictionScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 24),
+          padding: const EdgeInsets.symmetric(vertical: 20),
           decoration: BoxDecoration(
             gradient: gradient,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
             children: [
@@ -348,8 +353,8 @@ class _BitcoinPredictionScreenState extends State<BitcoinPredictionScreen> {
                 label,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
@@ -363,8 +368,9 @@ class _BitcoinPredictionScreenState extends State<BitcoinPredictionScreen> {
     return Text(
       '선택 후 결과를 확인할 수 있습니다',
       style: TextStyle(
-        fontSize: 12,
-        color: Colors.grey[400],
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: AppColors.gray5,
       ),
       textAlign: TextAlign.center,
     );

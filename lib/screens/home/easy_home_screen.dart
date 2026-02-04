@@ -19,6 +19,8 @@ import 'package:tkbank/screens/camera/vision_test_screen.dart';
 import 'ar_home_screen.dart';
 import 'package:tkbank/services/account_service.dart';
 import 'package:tkbank/models/account.dart';
+import 'package:tkbank/screens/btc/Bitcoin_prediction_screen.dart';
+
 
 class EasyHomeScreen extends StatefulWidget {
   final String baseUrl;
@@ -510,6 +512,14 @@ class _EasyHomeScreenState extends State<EasyHomeScreen> {
               );
             }),
           ],
+          _menuListItem(context, '비트코인 예측 이벤트', Icons.trending_up, () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const BitcoinPredictionScreen(),
+              ),
+            );
+          }),
           _menuListItem(context, '로고 인증 이벤트', Icons.camera_alt, () {
             Navigator.push(
               context,
@@ -640,6 +650,12 @@ class _SearchModalContentState extends State<_SearchModalContent> {
       requiresLogin: true,
     ),
     _SearchMenuItem(
+      label: '비트코인 예측 이벤트',
+      icon: Icons.trending_up,
+      keywords: ['비트코인', 'BTC', '예측', '코인', '상승', '하락'],
+      requiresLogin: true,
+    ),
+    _SearchMenuItem(
       label: '로고 인증 이벤트',
       icon: Icons.camera_alt,
       keywords: ['로고', '인증', '이벤트', '카메라'],
@@ -711,6 +727,9 @@ class _SearchModalContentState extends State<_SearchModalContent> {
         break;
       case '마이페이지':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const MyPageScreen()));
+        break;
+      case '비트코인 예측 이벤트':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const BitcoinPredictionScreen()));
         break;
       case '로고 인증 이벤트':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const VisionTestScreen()));

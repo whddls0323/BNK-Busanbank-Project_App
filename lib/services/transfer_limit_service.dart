@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'token_storage_service.dart';
 
 class TransferLimitService {
-  final String baseUrl = 'http://10.0.2.2:8080/busanbank';
+  final String baseUrl = 'http://192.168.219.105:8080/busanbank';
   final TokenStorageService _tokenStorage = TokenStorageService();
 
   Future<Map<String, String>> _getHeaders() async {

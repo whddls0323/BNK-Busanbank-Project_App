@@ -6,7 +6,7 @@ import 'package:tkbank/services/token_storage_service.dart';
 import '../models/Bitcoin_result.dart';
 
 class BitcoinService { // 비트코인 예측 이벤트 데이터 처리 - 작성자: 윤종인 2025.12.23
-  static const String baseUrl = "http://10.0.2.2:8080/busanbank";
+  static const String baseUrl = "http://192.168.219.105:8080/busanbank";
   final TokenStorageService _tokenStorage = TokenStorageService();
 
   /// ✅ JWT 토큰 헤더 생성 (자동)

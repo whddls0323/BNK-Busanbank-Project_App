@@ -34,7 +34,7 @@ class _TermsScreenState extends State<TermsScreen> {
   }
 
   void _openTerm(int termNo) {
-    final url = 'http://10.0.2.2:8080/busanbank/member/term/$termNo';
+    final url = 'http://192.168.219.105:8080/busanbank/member/term/$termNo';
     Navigator.push(
       context,
       MaterialPageRoute(

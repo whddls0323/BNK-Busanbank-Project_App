@@ -45,7 +45,7 @@ Future<void> main() async {
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
-  static const String baseUrl = 'http://10.0.2.2:8080/busanbank/api';
+  static const String baseUrl = 'http://192.168.219.105:8080/busanbank/api';
 
   @override
   State<MyApp> createState() => _MyAppState();

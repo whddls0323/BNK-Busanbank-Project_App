@@ -29,8 +29,16 @@ class _NewsAnalysisMainScreenState extends State<NewsAnalysisMainScreen> {
   @override
   void initState() {
     super.initState();
-    _apiService = FlutterApiService(baseUrl: widget.baseUrl);
-  }
+
+    // ✅ baseUrl 정리: /api와 중복된 /busanbank... 제거
+    String cleanUrl = widget.baseUrl
+        .replaceAll('/api', '')                    // /api 제거
+        .replaceAll(RegExp(r'/busanbank.*'), '/busanbank');  // 중복 제거
+
+    _apiService = FlutterApiService(baseUrl: cleanUrl);
+
+    print('🔥 AI 분석 정리된 baseUrl: $cleanUrl');
+  } // 26.01.08 _ 시연 영상 제작 중 경로 에러가 나서 급하게 수정함 - 수빈
 
   @override
   void dispose() {

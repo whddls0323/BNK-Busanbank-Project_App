@@ -31,7 +31,7 @@ class JoinStep3Screen extends StatefulWidget {
 
 class _JoinStep3ScreenState extends State<JoinStep3Screen> {
   final FlutterApiService _apiService = FlutterApiService(
-    baseUrl: 'http://10.0.2.2:8080/busanbank/api',
+    baseUrl: 'http://192.168.219.105:8080/busanbank/api',
   );
 
   final TextEditingController _pointCtrl = TextEditingController();
@@ -879,7 +879,7 @@ class _JoinStep3ScreenState extends State<JoinStep3Screen> {
       context,
       MaterialPageRoute(
         builder: (context) => JoinStep4Screen(
-          baseUrl: 'http://10.0.2.2:8080/busanbank/api',
+          baseUrl: 'http://192.168.219.105:8080/busanbank/api',
           request: updatedRequest,
         ),
       ),

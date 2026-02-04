@@ -7,7 +7,7 @@ import '../models/point.dart';
 import 'token_storage_service.dart';
 
 class PointService {
-  final String baseUrl = "http://10.0.2.2:8080/busanbank";
+  final String baseUrl = "http://192.168.219.105:8080/busanbank";
   final TokenStorageService _tokenStorage = TokenStorageService();
 
   // 포인트 조회

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:tkbank/services/token_storage_service.dart';
 
 class VoiceCallApi {
-  final String baseUrl; // ex) http://10.0.2.2:8080/busanbank
+  final String baseUrl; // ex) http://192.168.219.105:8080/busanbank
   final TokenStorageService _tokenStorage = TokenStorageService();
 
   VoiceCallApi({required this.baseUrl});

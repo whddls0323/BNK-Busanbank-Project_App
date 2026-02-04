@@ -19,7 +19,7 @@
     ┌───────────────────▼──────────────────────────────────────────┐
     │              Spring Boot Backend Server                       │
     │                 (Tomcat Embedded)                             │
-    │            Host: 10.0.2.2 (에뮬레이터)                        │
+    │            Host: 192.168.219.105 (에뮬레이터)                        │
     │                   Port: 8080                                  │
     │            Context Path: /busanbank                           │
     └───────────────────┬──────────────────────────────────────────┘
@@ -28,7 +28,7 @@
                         │
     ┌───────────────────▼──────────────────────────────────────────┐
     │              Oracle Database Server                           │
-    │            Host: 34.158.204.102                               │
+    │            Host: 192.168.219.105                               │
     │                   Port: 1521                                  │
     │             Database: XEPDB1                                  │
     │              Schema: bnkproject                               │
@@ -176,7 +176,7 @@ src/main/java/kr/co/busanbank/
 
 [Flutter] → [Spring Boot]
 
-Base URL: http://10.0.2.2:8080/busanbank
+Base URL: http://192.168.219.105:8080/busanbank
 
 주요 엔드포인트:
 ┌─────────────────────────────────────────────────────────────┐
@@ -218,7 +218,7 @@ Base URL: http://10.0.2.2:8080/busanbank
 └──────────────────────────────────────────────────────────────────┘
 
 WebSocket Endpoint:
-ws://10.0.2.2:8080/busanbank/ws/chat
+ws://192.168.219.105:8080/busanbank/ws/chat
 
 사용 목적: 실시간 상담 채팅
 
@@ -364,7 +364,7 @@ lib/screens/cs/chat/chat_page.dart
     ↓ POST /api/chat/session/start
     ↓ sessionId 반환
 [ChatWebSocketService.connect()]
-    ↓ ws://10.0.2.2:8080/busanbank/ws/chat 연결
+    ↓ ws://192.168.219.105:8080/busanbank/ws/chat 연결
 [WebSocket 연결 수립]
     ↓ 메시지 입력
 [sendText(message)]
@@ -556,7 +556,7 @@ lib/providers/
 ┌──────────────────────────────────────────────────────────────┐
 │ 환경별 API 서버 주소                                          │
 └──────────────────────────────────────────────────────────────┘
-• 에뮬레이터:   http://10.0.2.2:8080/busanbank
+• 에뮬레이터:   http://192.168.219.105:8080/busanbank
 • 실제 기기:    http://192.168.x.x:8080/busanbank  (로컬 WiFi IP)
 • 프로덕션:     https://api.tkbank.com/busanbank   (SSL 필수)
 
@@ -623,7 +623,7 @@ lib/config/api_config.dart
                     └───────────┬────────────────────┘
                                 │
                                 │ ② WebSocket 연결
-                                │    ws://10.0.2.2:8080/busanbank/ws/chat
+                                │    ws://192.168.219.105:8080/busanbank/ws/chat
                                 ↓
 ┌───────────────────────────────────────────────────────────────────────────┐
 │                         Spring Boot Server                                │

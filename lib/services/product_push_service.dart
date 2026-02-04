@@ -5,7 +5,7 @@ import 'package:tkbank/services/token_storage_service.dart';
 
 //가입 완료 푸시 알림 - 작성자: 윤종인 2025.12.31
 class ProductPushService {
-  static const String baseUrl = "http://10.0.2.2:8080/busanbank";
+  static const String baseUrl = "http://192.168.219.105:8080/busanbank";
   final TokenStorageService _tokenStorage = TokenStorageService();
 
   /// ✅ JWT 토큰 헤더 생성 (자동)

@@ -36,7 +36,7 @@ class _OtpTermsScreenState extends State<OtpTermsScreen> {
 
   void _openTerm(int termNo) {
     // ✅ term 상세 조회 엔드포인트가 어디인지에 맞춰 통일
-    final url = 'http://10.0.2.2:8080/busanbank/member/term/$termNo';
+    final url = 'http://192.168.219.105:8080/busanbank/member/term/$termNo';
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => TermWebViewScreen(url: url)),

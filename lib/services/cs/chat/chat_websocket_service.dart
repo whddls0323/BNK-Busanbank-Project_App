@@ -13,7 +13,7 @@ class ChatWebSocketService {
   void connect() {
     if (_channel != null) return;
 
-    final uri = Uri.parse('ws://10.0.2.2:8080/busanbank/ws/chat');
+    final uri = Uri.parse('ws://192.168.219.105:8080/busanbank/ws/chat');
     _channel = WebSocketChannel.connect(uri);
 
     _channel!.stream.listen(

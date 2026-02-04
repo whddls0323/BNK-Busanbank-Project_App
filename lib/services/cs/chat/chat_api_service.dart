@@ -7,7 +7,7 @@ import 'package:tkbank/models/cursor_page.dart';
 import '../../token_storage_service.dart';
 
 class ChatApiService {
-  final String baseUrl = "http://10.0.2.2:8080/busanbank";
+  final String baseUrl = "http://192.168.219.105:8080/busanbank";
 
   /// 세션 생성 API 호출 (JWT 필요)
   Future<int?> startChatSession({
