@@ -1,0 +1,704 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    TKBank 플러터 시스템 아키텍처 설계도
+                        작성자: 진원 / 작성일: 2026-01-05
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          1. 전체 시스템 구조 (3-Tier)                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │                    Flutter Mobile App                         │
+    │                   (Android / iOS)                             │
+    │                   Port: Dynamic                               │
+    └───────────────────┬──────────────────────────────────────────┘
+                        │
+                        │ ① REST API (HTTP/HTTPS)
+                        │ ② WebSocket (ws://)
+                        │
+    ┌───────────────────▼──────────────────────────────────────────┐
+    │              Spring Boot Backend Server                       │
+    │                 (Tomcat Embedded)                             │
+    │            Host: 192.168.219.105 (에뮬레이터)                        │
+    │                   Port: 8080                                  │
+    │            Context Path: /busanbank                           │
+    └───────────────────┬──────────────────────────────────────────┘
+                        │
+                        │ JDBC (Oracle Driver)
+                        │
+    ┌───────────────────▼──────────────────────────────────────────┐
+    │              Oracle Database Server                           │
+    │            Host: 192.168.219.105                               │
+    │                   Port: 1521                                  │
+    │             Database: XEPDB1                                  │
+    │              Schema: bnkproject                               │
+    └──────────────────────────────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    2. Flutter App 레이어 아키텍처                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+lib/
+│
+├─ screens/                         ◀ Presentation Layer (UI)
+│  ├─ account/                      ← 계좌 관련 화면
+│  ├─ auth/                         ← 로그인/회원가입
+│  ├─ chatbot/                      ← AI 챗봇
+│  ├─ cs/                           ← 고객센터
+│  │  ├─ chat/                      ← 실시간 상담 (WebSocket 사용)
+│  │  │  ├─ chat_page.dart          ⚡ WebSocket 연결 화면
+│  │  │  ├─ chat_history_screen.dart
+│  │  │  └─ chat_history_detail_screen.dart
+│  │  ├─ email/                     ← 이메일 상담
+│  │  └─ faq_screen.dart            ← FAQ
+│  ├─ event/                        ← 이벤트 (씨앗 심기 등)
+│  ├─ game/                         ← 게임 (출석체크, 감정게임 등)
+│  ├─ member/                       ← 회원 정보
+│  ├─ my_page/                      ← 마이페이지
+│  ├─ product/                      ← 금융상품
+│  │  ├─ join/                      ← 상품 가입 프로세스
+│  │  ├─ product_detail_screen.dart
+│  │  ├─ interest_calculator_screen.dart
+│  │  └─ news_analysis_screen.dart
+│  └─ walk/                         ← 만보기 기능
+│
+├─ services/                        ◀ Business Logic Layer
+│  ├─ api_service.dart              ← 공통 API 서비스
+│  ├─ cs/
+│  │  ├─ chat/
+│  │  │  ├─ chat_api_service.dart          ← REST API (채팅 세션 관리)
+│  │  │  └─ chat_websocket_service.dart    ⚡ WebSocket 서비스 핵심
+│  │  ├─ email_counsel_api_service.dart
+│  │  └─ faq_api_service.dart
+│  ├─ product_service.dart          ← 상품 조회
+│  ├─ product_join_service.dart     ← 상품 가입
+│  ├─ coupon_service.dart           ← 쿠폰 관리
+│  ├─ point_service.dart            ← 포인트 관리
+│  ├─ chatbot_service.dart          ← AI 챗봇 (Gemini API)
+│  ├─ news_service.dart             ← 뉴스 분석
+│  ├─ ocr_service.dart              ← OCR 카메라 포인트
+│  ├─ step_point_service.dart       ← 만보기 포인트
+│  ├─ profile_service.dart          ← 프로필 관리
+│  ├─ biometric_auth_service.dart   ← 생체인증
+│  ├─ token_storage_service.dart    ← 토큰 저장 (보안)
+│  └─ pin_storage_service.dart      ← PIN 저장 (보안)
+│
+├─ models/                          ◀ Data Transfer Objects
+│  ├─ chat_message.dart             ← 채팅 메시지 모델
+│  ├─ chat_session_summary.dart     ← 채팅 세션 정보
+│  ├─ chat_history_message.dart     ← 채팅 기록
+│  ├─ product.dart                  ← 금융상품
+│  ├─ product_terms.dart            ← 상품 약관
+│  ├─ user_profile.dart             ← 사용자 프로필
+│  ├─ coupon.dart                   ← 쿠폰
+│  ├─ point.dart                    ← 포인트
+│  ├─ branch.dart                   ← 지점 정보
+│  └─ ...
+│
+├─ providers/                       ◀ State Management (Provider 패턴)
+│  ├─ register_provider.dart        ← 회원가입 상태 관리
+│  ├─ news_provider.dart            ← 뉴스 상태 관리
+│  └─ seed_event_provider.dart      ← 씨앗 이벤트 상태 관리
+│
+├─ widgets/                         ◀ Reusable Components
+│  ├─ product_card.dart             ← 상품 카드 위젯
+│  ├─ category_tabs.dart            ← 카테고리 탭
+│  ├─ pin_dots.dart                 ← PIN 입력 표시
+│  ├─ register_step_indicator.dart  ← 회원가입 단계 표시
+│  └─ seed_pot.dart                 ← 씨앗 화분 UI
+│
+├─ config/                          ◀ Configuration
+│  ├─ api_config.dart               ← API 기본 URL 설정
+│  ├─ app_config.dart               ← 앱 설정
+│  └─ routes.dart                   ← 라우팅 설정
+│
+└─ utils/                           ◀ Utilities
+   ├─ validators.dart               ← 입력 검증
+   └─ formatters/
+      ├─ phone_number_formatter.dart
+      └─ money_formatter.dart
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   3. Spring Boot Backend 레이어 구조                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+src/main/java/kr/co/busanbank/
+│
+├─ controller/                      ◀ REST API Endpoints
+│  ├─ ApiFlutterController.java     ← Flutter 전용 API
+│  ├─ ApiTransactionController.java ← 거래 API
+│  ├─ quiz/QuizApiController.java   ← 퀴즈 API
+│  └─ cs/
+│     ├─ ChatApiController.java     ← 채팅 REST API
+│     └─ ChatWebSocketHandler.java  ⚡ WebSocket Handler (핵심)
+│
+├─ service/                         ◀ Business Logic
+│  ├─ ProductService.java
+│  ├─ MemberService.java
+│  ├─ quiz/QuizService.java
+│  └─ cs/ChatService.java
+│
+├─ repository/                      ◀ JPA Repositories
+│  └─ quiz/
+│
+├─ mapper/                          ◀ MyBatis Mappers
+│  ├─ MemberMapper.java
+│  ├─ ProductMapper.java
+│  └─ ...
+│
+├─ entity/                          ◀ JPA Entities
+│  └─ quiz/
+│
+├─ dto/                             ◀ Data Transfer Objects
+│  ├─ ProductDTO.java
+│  ├─ MemberDTO.java
+│  └─ ...
+│
+├─ security/                        ◀ Security Configuration
+│  ├─ SecurityConfig.java           ← Spring Security 설정
+│  ├─ JwtTokenProvider.java         ← JWT 토큰 처리
+│  └─ AESUtil.java                  ← AES 암호화/복호화
+│
+└─ config/
+   ├─ WebSocketConfig.java          ⚡ WebSocket 설정 (STOMP 엔드포인트)
+   └─ DatabaseConfig.java
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      4. 통신 프로토콜 상세 (2가지)                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────┐
+│ ① REST API (HTTP/HTTPS)                                          │
+└──────────────────────────────────────────────────────────────────┘
+
+[Flutter] → [Spring Boot]
+
+Base URL: http://192.168.219.105:8080/busanbank
+
+주요 엔드포인트:
+┌─────────────────────────────────────────────────────────────┐
+│ 카테고리   │ Method │ Endpoint                                │
+├─────────────────────────────────────────────────────────────┤
+│ 인증       │ POST   │ /api/member/login                       │
+│            │ POST   │ /api/member/register                    │
+│────────────────────────────────────────────────────────────│
+│ 상품       │ GET    │ /api/flutter/products                   │
+│            │ GET    │ /api/flutter/products/{id}              │
+│            │ GET    │ /api/flutter/products/{id}/terms        │
+│            │ POST   │ /api/flutter/join/guest                 │
+│────────────────────────────────────────────────────────────│
+│ 포인트     │ GET    │ /api/flutter/points/user/{id}           │
+│            │ POST   │ /api/points/ocr                         │
+│            │ POST   │ /api/points/step                        │
+│────────────────────────────────────────────────────────────│
+│ 쿠폰       │ GET    │ /api/flutter/coupons/user/{id}          │
+│            │ POST   │ /api/coupons/use                        │
+│────────────────────────────────────────────────────────────│
+│ 퀴즈       │ GET    │ /api/quiz/today                         │
+│            │ POST   │ /api/quiz/submit                        │
+│            │ GET    │ /api/quiz/status                        │
+│────────────────────────────────────────────────────────────│
+│ 채팅 관리  │ POST   │ /api/chat/session/start                 │
+│            │ GET    │ /api/chat/history                       │
+│            │ GET    │ /api/chat/history/{sessionId}           │
+│────────────────────────────────────────────────────────────│
+│ FAQ        │ GET    │ /api/faq/list                           │
+│            │ GET    │ /api/faq/{id}                           │
+│────────────────────────────────────────────────────────────│
+│ 지점       │ GET    │ /api/flutter/branches                   │
+│            │ GET    │ /api/flutter/employees                  │
+└─────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│ ② WebSocket (실시간 양방향 통신) ⚡                               │
+└──────────────────────────────────────────────────────────────────┘
+
+WebSocket Endpoint:
+ws://192.168.219.105:8080/busanbank/ws/chat
+
+사용 목적: 실시간 상담 채팅
+
+┌──────────────────────────────────────────────────────────────┐
+│ Flutter 측 (Client)                                           │
+└──────────────────────────────────────────────────────────────┘
+위치: lib/services/cs/chat/chat_websocket_service.dart
+
+주요 메서드:
+• connect()         → WebSocket 연결
+• sendText(String)  → 메시지 전송
+• disconnect()      → 연결 종료
+• stream            → 메시지 수신 스트림
+
+사용 화면:
+lib/screens/cs/chat/chat_page.dart
+
+┌──────────────────────────────────────────────────────────────┐
+│ Spring Boot 측 (Server)                                       │
+└──────────────────────────────────────────────────────────────┘
+위치: src/main/java/kr/co/busanbank/controller/cs/ChatWebSocketHandler.java
+설정: src/main/java/kr/co/busanbank/config/WebSocketConfig.java
+
+주요 기능:
+• handleTextMessage()      → 메시지 수신 처리
+• afterConnectionEstablished() → 연결 수립
+• afterConnectionClosed()  → 연결 종료
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ WebSocket 통신 흐름 (실시간 채팅)                             │
+└──────────────────────────────────────────────────────────────┘
+
+[사용자] → [Flutter App] → [WebSocket] → [Spring Boot] → [상담사]
+
+1. 상담 시작
+   Flutter: ChatWebSocketService.connect()
+   ↓
+   Spring: ChatWebSocketHandler.afterConnectionEstablished()
+
+2. 메시지 송신
+   Flutter: sendText("안녕하세요")
+   ↓
+   Spring: handleTextMessage() 수신 → 상담사에게 전달
+
+3. 메시지 수신
+   Spring: sendMessage() → Flutter에게 전송
+   ↓
+   Flutter: stream.listen() → 화면에 표시
+
+4. 상담 종료
+   Flutter: disconnect()
+   ↓
+   Spring: afterConnectionClosed()
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    5. 주요 기능별 데이터 흐름                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ 5-1. 로그인 흐름                                              │
+└──────────────────────────────────────────────────────────────┘
+
+[LoginScreen]
+    ↓ 아이디/비번 입력
+[ApiService.login()]
+    ↓ POST /api/member/login
+[Spring: MemberController]
+    ↓ 인증 처리
+[Spring: JwtTokenProvider]
+    ↓ JWT 토큰 생성
+[Flutter: TokenStorageService]
+    ↓ flutter_secure_storage에 저장
+[홈 화면 이동]
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 5-2. 금융상품 가입 흐름                                       │
+└──────────────────────────────────────────────────────────────┘
+
+[ProductDetailScreen]
+    ↓ 상품 선택
+[JoinStep1Screen] - 약관 동의
+    ↓ ProductService.getTerms()
+    ↓ GET /api/flutter/products/{id}/terms
+[Spring: ApiFlutterController]
+    ↓ 약관 HTML 반환
+[WebView로 약관 표시]
+    ↓ 전체 동의 체크
+[JoinStep2Screen] - 가입 정보 입력
+    ↓ 금액, 기간 입력
+[ProductJoinService.joinProduct()]
+    ↓ POST /api/flutter/join/guest
+[Spring: ProductController]
+    ↓ DB 저장 (MyBatis)
+[가입 완료 화면]
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 5-3. 퀴즈 게임 흐름                                           │
+└──────────────────────────────────────────────────────────────┘
+
+[QuizDashboard]
+    ↓ 오늘의 퀴즈 조회
+    ↓ GET /api/quiz/today
+[Spring: QuizApiController]
+    ↓ JPA Repository 조회
+    ↓ 퀴즈 3개 반환
+[QuizScreen] - 퀴즈 풀이
+    ↓ 정답 선택
+    ↓ POST /api/quiz/submit
+[Spring: QuizService]
+    ↓ 정답 확인
+    ↓ 포인트 지급 (10점)
+    ↓ 레벨 업데이트
+[결과 화면 표시]
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 5-4. AI 챗봇 상담 흐름                                        │
+└──────────────────────────────────────────────────────────────┘
+
+[ChatbotScreen]
+    ↓ 사용자 질문 입력
+[ChatbotService.sendMessage()]
+    ↓ POST /api/chatbot/ask
+[Spring: ChatbotController]
+    ↓ Gemini API 호출
+    ↓ @Value("${spring.gemini.api.key}")
+[Google Gemini AI]
+    ↓ 답변 생성
+[Flutter 화면에 답변 표시]
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 5-5. 실시간 상담 채팅 흐름 ⚡                                 │
+└──────────────────────────────────────────────────────────────┘
+
+[ChatPage]
+    ↓ 상담 시작 버튼
+[ChatApiService.startSession()]
+    ↓ POST /api/chat/session/start
+    ↓ sessionId 반환
+[ChatWebSocketService.connect()]
+    ↓ ws://192.168.219.105:8080/busanbank/ws/chat 연결
+[WebSocket 연결 수립]
+    ↓ 메시지 입력
+[sendText(message)]
+    ↓ WebSocket으로 전송
+[Spring: ChatWebSocketHandler]
+    ↓ 상담사에게 메시지 전달
+    ↓ 상담사 답변
+    ↓ WebSocket으로 Flutter에 전송
+[stream.listen() 수신]
+    ↓ 화면에 실시간 표시
+[상담 종료]
+    ↓ disconnect()
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 5-6. OCR 카메라 포인트 적립 흐름                              │
+└──────────────────────────────────────────────────────────────┘
+
+[CameraScreen]
+    ↓ 영수증 촬영
+[OcrService.analyzeReceipt()]
+    ↓ 이미지를 Base64로 인코딩
+    ↓ POST /api/points/ocr
+[Spring: PointController]
+    ↓ Google Vision API 호출
+    ↓ @Value("${spring.google.vision.api-key}")
+[Google Vision API]
+    ↓ OCR 분석 (금액 추출)
+[Spring: PointService]
+    ↓ 포인트 계산 (금액의 1%)
+    ↓ DB 저장
+[Flutter 화면에 적립 포인트 표시]
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 5-7. 만보기 포인트 적립 흐름                                  │
+└──────────────────────────────────────────────────────────────┘
+
+[StepCounterPage]
+    ↓ Pedometer 센서 사용
+    ↓ 걸음 수 측정 (10,000보 달성)
+[StepPointService.recordSteps()]
+    ↓ POST /api/points/step
+[Spring: PointController]
+    ↓ 포인트 지급 (100점)
+    ↓ DB 저장
+[Flutter 화면에 적립 알림]
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       6. 보안 아키텍처                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ 6-1. 인증/인가 (JWT)                                          │
+└──────────────────────────────────────────────────────────────┘
+
+[로그인 성공]
+    ↓
+[Spring: JwtTokenProvider.generateToken()]
+    ↓ JWT 토큰 생성
+    ↓ secret: "E912C15AA2495217ECD6BE5BEA8D1102"
+[Flutter: TokenStorageService]
+    ↓ flutter_secure_storage에 저장
+
+[API 호출 시]
+    ↓ Authorization: Bearer {token}
+[Spring: JwtAuthenticationFilter]
+    ↓ 토큰 검증
+    ↓ SecurityContext에 사용자 정보 설정
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 6-2. 민감 데이터 암호화 (AES-256)                             │
+└──────────────────────────────────────────────────────────────┘
+
+[개인정보 저장 시]
+    ↓ 주민번호, 계좌번호 등
+[Spring: AESUtil.encrypt()]
+    ↓ AES-256 암호화
+    ↓ secret: "BusanBankAESKey1"
+[Oracle DB에 암호화된 데이터 저장]
+
+[조회 시]
+    ↓
+[Spring: AESUtil.decrypt()]
+    ↓ 복호화
+[Flutter에 평문 전송 (HTTPS)]
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 6-3. 생체인증 (지문/Face ID)                                  │
+└──────────────────────────────────────────────────────────────┘
+
+[Flutter: BiometricAuthService]
+    ↓ local_auth 패키지 사용
+    ↓ 지문/얼굴 인식
+[인증 성공]
+    ↓
+[BiometricStorageService]
+    ↓ 저장된 토큰 자동 로드
+[자동 로그인]
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 6-4. 간편 비밀번호 (PIN)                                      │
+└──────────────────────────────────────────────────────────────┘
+
+[PinSetupScreen]
+    ↓ 6자리 PIN 입력
+[PinStorageService]
+    ↓ flutter_secure_storage에 암호화 저장
+[앱 실행 시]
+    ↓ PIN 입력 화면
+[PinVerifyScreen]
+    ↓ PIN 검증
+[앱 메인 화면]
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      7. 외부 API 연동                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ API 종류           │ 사용 목적            │ 설정 위치           │
+├──────────────────────────────────────────────────────────────┤
+│ Google Gemini      │ AI 챗봇 답변        │ application.yml:78  │
+│ Google Vision      │ OCR 영수증 인식     │ application.yml:82  │
+│ OpenAI             │ 뉴스 분석           │ application.yml:86  │
+│ SOLAPI             │ SMS 인증 발송       │ application.yml:67  │
+│ Agora              │ 영상 상담 (예정)    │ application.yml:139 │
+└──────────────────────────────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      8. 데이터베이스 구조                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ 퍼시스턴스 전략: Hybrid (JPA + MyBatis)                       │
+└──────────────────────────────────────────────────────────────┘
+
+① JPA (Quiz 모듈)
+   - 자동 테이블 생성 (ddl-auto: update)
+   - Entity: Quiz, UserQuizProgress, UserLevel, DailyQuest
+   - 위치: kr.co.busanbank.entity.quiz.*
+
+② MyBatis (나머지 모든 기능)
+   - XML 기반 SQL 매핑
+   - Mapper: MemberMapper, ProductMapper, AdminMapper 등
+   - XML 위치: src/main/resources/mappers/**/*.xml
+
+주요 테이블:
+- MEMBER             (회원 정보)
+- PRODUCT            (금융상품)
+- ACCOUNT            (계좌)
+- TRANSACTION        (거래 내역)
+- POINT              (포인트 이력)
+- COUPON             (쿠폰)
+- USER_COUPON        (사용자 쿠폰)
+- QUIZ               (퀴즈 문제)
+- USER_QUIZ_PROGRESS (퀴즈 진행 상황)
+- USER_LEVEL         (사용자 레벨)
+- CHAT_SESSION       (채팅 세션)
+- CHAT_MESSAGE       (채팅 메시지)
+- FAQ                (FAQ)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   9. 상태 관리 패턴 (Provider)                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Provider 패턴 사용:
+lib/providers/
+├─ register_provider.dart    ← 회원가입 상태 (다단계 폼)
+├─ news_provider.dart        ← 뉴스 목록 캐싱
+└─ seed_event_provider.dart  ← 씨앗 이벤트 상태
+
+사용 예시:
+1. main.dart에서 MultiProvider로 등록
+2. 화면에서 Provider.of<T>(context) 또는 Consumer<T> 사용
+3. 상태 변경 시 notifyListeners() 호출
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   10. 배포 환경 설정                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ 환경별 API 서버 주소                                          │
+└──────────────────────────────────────────────────────────────┘
+• 에뮬레이터:   http://192.168.219.105:8080/busanbank
+• 실제 기기:    http://192.168.x.x:8080/busanbank  (로컬 WiFi IP)
+• 프로덕션:     https://api.tkbank.com/busanbank   (SSL 필수)
+
+설정 위치:
+lib/config/api_config.dart
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   11. 주요 기술 스택 요약                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+[Flutter App (Mobile)]
+• Flutter 3.9.2
+• Dart 3.x
+• Provider (상태 관리)
+• http (REST API)
+• web_socket_channel (WebSocket)
+• flutter_secure_storage (보안 저장)
+• local_auth (생체인증)
+• webview_flutter (웹뷰)
+• pedometer (만보기)
+
+[Spring Boot Backend]
+• Spring Boot 3.5.7
+• Spring Security (JWT 인증)
+• Spring Web (REST API)
+• Spring WebSocket (실시간 통신)
+• Spring Data JPA (Quiz 모듈)
+• MyBatis (나머지 모듈)
+• Oracle JDBC Driver
+
+[Database]
+• Oracle Database 19c
+• Schema: bnkproject
+
+[외부 API]
+• Google Gemini AI
+• Google Vision API
+• OpenAI API
+• SOLAPI (SMS)
+• Agora (영상통화, 예정)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   12. WebSocket 상세 구조도 ⚡                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                    ┌────────────────────────────────┐
+                    │   Flutter ChatPage Screen      │
+                    │   (사용자 UI)                  │
+                    └───────────┬────────────────────┘
+                                │
+                                │ ① 상담 시작
+                                ↓
+                    ┌────────────────────────────────┐
+                    │  ChatWebSocketService          │
+                    │  (WebSocket 클라이언트)        │
+                    │                                │
+                    │  메서드:                       │
+                    │  • connect()                   │
+                    │  • sendText(String)            │
+                    │  • disconnect()                │
+                    │  • stream (메시지 수신)        │
+                    └───────────┬────────────────────┘
+                                │
+                                │ ② WebSocket 연결
+                                │    ws://192.168.219.105:8080/busanbank/ws/chat
+                                ↓
+┌───────────────────────────────────────────────────────────────────────────┐
+│                         Spring Boot Server                                │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │ WebSocketConfig.java                                             │    │
+│  │ • registerWebSocketHandlers()                                    │    │
+│  │ • addHandler(chatHandler, "/ws/chat")                            │    │
+│  │ • setAllowedOrigins("*")                                         │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                ↓                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │ ChatWebSocketHandler.java (핵심)                                 │    │
+│  │                                                                  │    │
+│  │ ③ 연결 수립:                                                     │    │
+│  │   afterConnectionEstablished(WebSocketSession session)           │    │
+│  │   • sessionId 저장                                               │    │
+│  │   • Redis에 세션 등록                                            │    │
+│  │                                                                  │    │
+│  │ ④ 메시지 수신:                                                   │    │
+│  │   handleTextMessage(WebSocketSession session, TextMessage msg)   │    │
+│  │   • 메시지 파싱                                                  │    │
+│  │   • DB 저장                                                      │    │
+│  │   • 상담사에게 전달                                              │    │
+│  │                                                                  │    │
+│  │ ⑤ 메시지 송신:                                                   │    │
+│  │   session.sendMessage(new TextMessage(response))                 │    │
+│  │                                                                  │    │
+│  │ ⑥ 연결 종료:                                                     │    │
+│  │   afterConnectionClosed(WebSocketSession session, CloseStatus)   │    │
+│  │   • Redis 세션 제거                                              │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+
+                                ↓
+                    ┌────────────────────────────────┐
+                    │   Redis (Session Storage)      │
+                    │   • 활성 세션 관리             │
+                    │   • 메시지 큐                  │
+                    └────────────────────────────────┘
+
+
+메시지 포맷 예시:
+{
+  "sessionId": "sess_12345",
+  "userId": "user_67890",
+  "message": "예금 상품 문의합니다",
+  "timestamp": "2026-01-05T10:30:00"
+}
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   13. 에러 처리 및 예외 관리                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+[Flutter 측]
+try-catch 블록으로 에러 처리:
+• 네트워크 에러: http.Response.statusCode 확인
+• WebSocket 에러: onError 콜백 처리
+• UI 피드백: SnackBar, AlertDialog로 사용자에게 알림
+
+[Spring 측]
+• @ControllerAdvice로 전역 예외 처리
+• CustomException 정의 (BusinessException, UnauthorizedException 등)
+• 로그 기록: logs/Busanbank.log
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        끝                                                    │
+│                                                                              │
+│  이 문서는 TKBank 플러터 앱과 Spring Boot 백엔드의 전체 시스템 구조를       │
+│  설명합니다. WebSocket 실시간 통신, REST API, 보안, 외부 API 연동 등       │
+│  모든 핵심 아키텍처를 포함합니다.                                           │
+│                                                                              │
+│  작성자: 진원                                                                │
+│  작성일: 2026-01-05                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TKBank 영업점 지도</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .custom-overlay {
+            position: relative;
+            bottom: 85px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.3);
+            background: white;
+        }
+        .custom-overlay a {
+            display: block;
+            text-decoration: none;
+            color: #000;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            overflow: hidden;
+        }
+        .custom-overlay .title {
+            display: block;
+            text-align: center;
+            background: #fff;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #eee;
+        }
+        .custom-overlay .info {
+            padding: 10px 15px;
+            font-size: 12px;
+            color: #666;
+            background: #f9f9f9;
+        }
+        .custom-overlay:after {
+            content: '';
+            position: absolute;
+            margin-left: -12px;
+            left: 50%;
+            bottom: -12px;
+            width: 22px;
+            height: 12px;
+            background: url('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/vertex_white.png');
+        }
+        .checkin-btn {
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 10px 15px;
+            font-size: 13px;
+            margin: 10px;
+            background: #4CAF50;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .checkin-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .distance-badge {
+            display: inline-block;
+            background: #2196F3;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        .nearby-badge {
+            background: #4CAF50;
+        }
+        .far-badge {
+            background: #FF5722;
+        }
+        #my-location-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #2196F3;
+            border: none;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #my-location-btn:active {
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        #status-message {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            display: none;
+            z-index: 1000;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="status-message"></div>
+    <button id="my-location-btn" onclick="moveToMyLocation()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+            <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+        </svg>
+    </button>
+
+    <!-- 카카오맵 API (작성자: 진원, 2025-11-30) -->
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fcb02db403a511ea44eb59837485cda6&libraries=services"></script>
+
+    <script>
+        var map;
+        var markers = [];
+        var overlays = [];
+        var myLocationMarker = null;
+        var myPosition = null;
+        var radiusCircle = null;
+
+        // 2025-12-17 - 카카오맵 초기화 - 작성자: 진원
+        // 2026/01/05 - 내 위치 마커 및 반경 원 추가 - 작성자: 진원
+        // 2026/01/05 - Flutter에서 위치 정보 받도록 수정 - 작성자: 진원
+        function initMap() {
+            var container = document.getElementById('map');
+            var options = {
+                center: new kakao.maps.LatLng(35.1796, 129.0756), // 부산 중심좌표
+                level: 8
+            };
+            map = new kakao.maps.Map(container, options);
+        }
+
+        // 2026/01/05 - Flutter에서 위치 정보를 받아서 업데이트 - 작성자: 진원
+        // 2026/01/06 - 디버그 로그 강화 및 에러 처리 추가 - 작성자: 진원
+        function updateMyLocation(lat, lon) {
+            console.log('📍 Flutter에서 위치 수신:', lat, lon);
+
+            try {
+                myPosition = new kakao.maps.LatLng(lat, lon);
+                console.log('📍 myPosition 설정 완료:', myPosition);
+
+                // 내 위치 마커 (파란색 별)
+                var imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png';
+                var imageSize = new kakao.maps.Size(24, 35);
+                var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+
+                // 기존 마커가 있으면 제거
+                if (myLocationMarker) {
+                    myLocationMarker.setMap(null);
+                    console.log('📍 기존 마커 제거');
+                }
+
+                myLocationMarker = new kakao.maps.Marker({
+                    map: map,
+                    position: myPosition,
+                    image: markerImage,
+                    title: '내 위치'
+                });
+                console.log('📍 내 위치 마커 생성 완료');
+
+                // 기존 반경 원이 있으면 제거
+                if (radiusCircle) {
+                    radiusCircle.setMap(null);
+                    console.log('📍 기존 반경 원 제거');
+                }
+
+                // 1km 반경 원 표시
+                radiusCircle = new kakao.maps.Circle({
+                    center: myPosition,
+                    radius: 1000, // 1km
+                    strokeWeight: 2,
+                    strokeColor: '#2196F3',
+                    strokeOpacity: 0.6,
+                    strokeStyle: 'solid',
+                    fillColor: '#2196F3',
+                    fillOpacity: 0.1
+                });
+                radiusCircle.setMap(map);
+                console.log('📍 1km 반경 원 생성 완료');
+
+                // 현재 위치로 지도 중심 이동
+                map.setCenter(myPosition);
+                map.setLevel(6);
+                console.log('📍 지도 중심 이동 완료');
+
+                showMessage('위치 정보를 가져왔습니다', true);
+                console.log('✅ updateMyLocation 완료');
+            } catch (error) {
+                console.error('❌ updateMyLocation 실패:', error);
+                showMessage('위치 정보 처리 중 오류가 발생했습니다', false);
+            }
+        }
+
+        // 2026/01/05 - 내 위치로 이동 - 작성자: 진원
+        // 2026/01/06 - 부드러운 이동으로 이미지 버퍼 문제 해결 - 작성자: 진원
+        // 2026/01/06 - 디버그 로그 및 에러 처리 강화 - 작성자: 진원
+        function moveToMyLocation() {
+            console.log('📍 현재 위치로 이동 버튼 클릭');
+            console.log('📍 myPosition:', myPosition);
+
+            if (myPosition) {
+                try {
+                    console.log('📍 위치 이동 시작: lat=' + myPosition.getLat() + ', lng=' + myPosition.getLng());
+
+                    // panTo 사용으로 부드럽게 이동 (이미지 버퍼 문제 완화)
+                    map.panTo(myPosition);
+
+                    // 약간의 지연 후 줌 레벨 조정
+                    setTimeout(function() {
+                        map.setLevel(6);
+                        console.log('📍 줌 레벨 조정 완료');
+                    }, 300);
+
+                    showMessage('내 위치로 이동했습니다', true);
+                    console.log('✅ 위치 이동 성공');
+                } catch (error) {
+                    console.error('❌ 위치 이동 실패:', error);
+                    showMessage('위치 이동 중 오류가 발생했습니다', false);
+                }
+            } else {
+                console.warn('⚠️ myPosition이 null입니다');
+                showMessage('위치 정보를 가져오는 중입니다. 잠시 후 다시 시도해주세요.', false);
+            }
+        }
+
+        // 2025-12-17 - Flutter에서 영업점 데이터 받아서 마커 표시 - 작성자: 진원
+        // 2026/01/05 - 거리에 따른 마커 색상 구분 - 작성자: 진원
+        function loadBranchesFromFlutter(branches) {
+            console.log('영업점 데이터 수신:', branches.length + '개');
+
+            // 기존 마커와 오버레이 제거
+            clearMarkers();
+
+            branches.forEach(function(branch) {
+                var position = new kakao.maps.LatLng(branch.latitude, branch.longitude);
+
+                // 거리 계산 (미터)
+                var distance = 0;
+                var isNearby = false;
+                if (myPosition) {
+                    var line = new kakao.maps.Polyline({
+                        path: [myPosition, position]
+                    });
+                    distance = line.getLength(); // 미터 단위
+                    isNearby = distance <= 1000; // 1km 이내
+                }
+
+                // 마커 이미지 선택 (초록색: 가능, 빨간색: 멀음)
+                var imageSrc = isNearby
+                    ? 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_green.png'
+                    : 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png';
+                var imageSize = new kakao.maps.Size(27, 40);
+                var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+
+                // 마커 생성
+                var marker = new kakao.maps.Marker({
+                    map: map,
+                    position: position,
+                    image: markerImage,
+                    title: branch.branchName
+                });
+
+                markers.push(marker);
+
+                // 커스텀 오버레이 생성
+                var content = createOverlayContent(branch, distance, isNearby);
+                var customOverlay = new kakao.maps.CustomOverlay({
+                    position: position,
+                    content: content,
+                    yAnchor: 1,
+                    clickable: true
+                });
+
+                overlays.push(customOverlay);
+
+                // 마커 클릭 이벤트
+                kakao.maps.event.addListener(marker, 'click', function() {
+                    // 모든 오버레이 숨기기
+                    overlays.forEach(function(o) {
+                        o.setMap(null);
+                    });
+                    // 선택된 오버레이만 표시
+                    customOverlay.setMap(map);
+                });
+            });
+        }
+
+        // 2025-12-17 - 커스텀 오버레이 HTML 생성 - 작성자: 진원
+        // 2026/01/05 - 거리 정보 및 상태 배지 추가 - 작성자: 진원
+        function createOverlayContent(branch, distance, isNearby) {
+            var distanceKm = (distance / 1000).toFixed(1);
+            var badgeClass = isNearby ? 'nearby-badge' : 'far-badge';
+            var badgeText = isNearby ? '✓ 체크인 가능' : '거리 멀음';
+
+            var content = document.createElement('div');
+            content.className = 'custom-overlay';
+            content.innerHTML = `
+                <a href="#">
+                    <div class="title">
+                        ${branch.branchName}
+                        <span class="distance-badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                    <div class="info">
+                        📍 ${distanceKm}km · ${branch.branchAddr || ''}
+                    </div>
+                    <button class="checkin-btn"
+                            ${!isNearby ? 'disabled' : ''}
+                            onclick="requestCheckin(${branch.branchId}, '${branch.branchName}', ${branch.latitude}, ${branch.longitude}, ${isNearby}); return false;">
+                        ${isNearby ? '체크인 하기' : '반경 1km 밖'}
+                    </button>
+                </a>
+            `;
+            return content;
+        }
+
+        // 마커와 오버레이 제거
+        function clearMarkers() {
+            markers.forEach(function(marker) {
+                marker.setMap(null);
+            });
+            overlays.forEach(function(overlay) {
+                overlay.setMap(null);
+            });
+            markers = [];
+            overlays = [];
+        }
+
+        // 2025-12-17 - 체크인 요청 (Flutter로 전송) - 작성자: 진원
+        function requestCheckin(branchId, branchName, latitude, longitude, isNearby) {
+            if (!isNearby) {
+                showMessage('영업점 근처에서만 체크인할 수 있습니다 (반경 1km 이내)', false);
+                return;
+            }
+
+            var data = {
+                branchId: branchId,
+                branchName: branchName,
+                latitude: latitude,
+                longitude: longitude
+            };
+
+            // Flutter로 메시지 전송
+            if (window.FlutterChannel) {
+                window.FlutterChannel.postMessage(JSON.stringify(data));
+            } else {
+                showMessage('앱 연동 오류가 발생했습니다', false);
+            }
+        }
+
+        // 2025-12-17 - Flutter에서 체크인 결과 수신 - 작성자: 진원
+        function onCheckinResult(success, message, points) {
+            if (success) {
+                showMessage(message + ' (+' + points + 'P)', true);
+                // 모든 오버레이 숨기기
+                overlays.forEach(function(o) {
+                    o.setMap(null);
+                });
+            } else {
+                showMessage(message, false);
+            }
+        }
+
+        // 상태 메시지 표시
+        function showMessage(message, isSuccess) {
+            var statusDiv = document.getElementById('status-message');
+            statusDiv.textContent = message;
+            statusDiv.style.background = isSuccess ? 'rgba(76, 175, 80, 0.9)' : 'rgba(244, 67, 54, 0.9)';
+            statusDiv.style.display = 'block';
+
+            setTimeout(function() {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // 지도 초기화
+        window.onload = function() {
+            initMap();
+        };
+    </script>
+</body>
+</html>

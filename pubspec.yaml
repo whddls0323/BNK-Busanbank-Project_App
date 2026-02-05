@@ -1,0 +1,188 @@
+name: tkbank
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.5.0
+  flutter_secure_storage: ^9.2.4
+  provider: ^6.1.5
+
+  #2025/12/16 - 푸시알림 관련 의존성 - 작성자: 윤종인
+  firebase_core: ^4.2.1
+  firebase_messaging: ^16.0.4
+  flutter_local_notifications: ^19.5.0
+
+  #2025/12/16 - 카메라 의존성 - 작성자: 윤종인
+  image_picker: ^1.2.1
+
+  intl: ^0.20.2
+
+  #2025/12/15 - 약관 관련 html 불러오기 설정 추가 - 작성자 : 오서정
+  webview_flutter: ^4.13.0
+
+  #2025/12/17 - 웹소켓 관련 의존성 - 작성자 : 우지희
+  web_socket_channel: ^2.4.0
+
+  #2025/12/17 - 만보기 기능 - 작성자 : 우지희
+  pedometer: ^4.0.1
+  shared_preferences: ^2.2.2  # 날짜별 걸음 수 저장용
+
+  #2025/12/17 - 위치 권한 요청 - 작성자: 진원
+  permission_handler: ^11.3.0
+
+  #2026/01/05 - 위치 정보 가져오기 - 작성자: 진원
+  geolocator: ^14.0.2
+
+  #2025/12/18 - lottie(애니메이션 json 파일) 관련 의존성 추가 - 작성자 : 오서정
+  lottie: ^3.3.2
+
+  #2025/12/19 - 뉴스 분석 API 관련 의존성 추가 - 작성자: 진원
+  dio: ^5.4.0
+
+  #2025/12/19 - OCR 텍스트 인식 의존성 추가 - 작성자: 진원
+  google_mlkit_text_recognition: ^0.13.0
+
+  #2025/12/28 - 얼굴 감정 분석 게임 의존성 추가 - 작성자: 진원
+  google_mlkit_face_detection: ^0.10.0
+
+  #2025/12/19 - 이미지 캐싱 의존성 추가 - 작성자: 진원
+  cached_network_image: ^3.3.0
+
+  #2025/12/19 - 금융감정분석 파서 추가 - 작성자: 수진
+  # image_picker: ^1.0.5
+  http_parser: ^4.0.2
+
+  #2025/12/20 - ESG 낚시 게임 가속도 센서 추가 - 작성자: 진원
+  sensors_plus: ^7.0.0
+
+  #2025/12/21 - 생체인증 의존성 추가 - 작성자: 오서정
+  local_auth: ^2.3.0
+
+  #2025/12/21 - 등록된 기기 정보 의존성 추가 - 작성자: 오서정
+  device_info_plus: ^12.3.0
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.8
+
+  # 2025/12/23 _ 메인 화면 카메라 기능 추가 - 작성자: 천수빈
+  camera: ^0.10.5+9
+
+  # 2025/12/23 _ 대사 타이핑 효과 추가 - 작성자: 천수빈
+  animated_text_kit: ^4.2.2
+
+  # 2025/12/23 _ 메인 화면 모델 구현 기능 추가 - 작성자: 천수빈
+  model_viewer_plus: ^1.7.2
+
+  # 2025/12/16 - 주소 검색 의존성 추가 - 작성자: 오서정
+  kpostal: ^1.1.0
+  flutter_inappwebview: ^6.1.5
+
+  # 2025/01/01 - 신분증(OCR) 이미지 인식 의존성 추가 - 작성자: 오서정
+  image: ^4.2.0
+
+  # 2025/01/02 - 전화상담 agora 의존성 추가 - 우지희
+  agora_rtc_engine: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^5.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - assets/images/ # 2025/12/23 - images 파일 추가 - 작성자: 천수빈
+    - assets/branch_map.html
+    - assets/lottie/ # 2025/12/18 - lottie 파일 추가 - 작성자: 오서정
+    - assets/models/ # 2025/12/23 - models 파일 추가 - 작성자: 천수빈
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Black.ttf
+          weight: 900
+        - asset: assets/fonts/Pretendard-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Pretendard-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Pretendard-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/Pretendard-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Pretendard-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Pretendard-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Pretendard-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Thin.ttf
+          weight: 100
+
+  #    - family: Schyler
+  #      fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #    - family: Trajan Pro
+  #      fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
