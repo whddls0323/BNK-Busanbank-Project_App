@@ -1,4 +1,5 @@
 # 🏦 금융권 예금상품 관리 시스템 2차 Project
+<img width="353" height="738" alt="image" src="https://github.com/user-attachments/assets/6cc5b503-c3fa-42d4-9adb-436cef88880f" />
 
 ## 딸깍은행 APP 개발
 
